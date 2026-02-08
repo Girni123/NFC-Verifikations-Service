@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Verification Service</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="hero">
+        <div class="container">
+            <nav>
+                <div class="logo">NFC<span class="highlight">Verify</span></div>
+                <div class="links">
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How it Works</a>
+                    <a href="#contact" class="btn">Get Started</a>
+                </div>
+            </nav>
+            <div class="hero-content">
+                <div class="text">
+                    <h1>Verify Authenticity with a Single Tap.</h1>
+                    <p>Secure your products and assets with our cutting-edge NFC verification technology. Instant, reliable, and impossible to fake.</p>
+                    <div class="cta-group">
+                        <a href="#" class="btn primary">Start Verifying</a>
+                        <a href="#" class="btn secondary">Learn More</a>
+                    </div>
+                </div>
+                <div class="visual">
+                    <!-- Simple SVG Animation -->
+                    <svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" class="floating">
+                        <circle cx="200" cy="200" r="150" fill="url(#grad1)" opacity="0.2" class="pulse" />
+                        <circle cx="200" cy="200" r="100" fill="url(#grad1)" opacity="0.4" class="pulse-delay" />
+                        <rect x="140" y="120" width="120" height="160" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="4" />
+                        <path d="M180 250 H220" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+                        <circle cx="200" cy="200" r="20" stroke="#3b82f6" stroke-width="4" class="scan" />
+                        <defs>
+                            <radialGradient id="grad1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(200 200) rotate(90) scale(150)">
+                                <stop stop-color="#3b82f6" />
+                                <stop offset="1" stop-color="#3b82f6" stop-opacity="0" />
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="features" class="features">
+        <div class="container">
+            <h2>Why Choose NFC Verify?</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="icon">🔒</div>
+                    <h3>Unbreakable Security</h3>
+                    <p>Uses cryptographic signatures that cannot be cloned or spoofed.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">⚡</div>
+                    <h3>Instant Results</h3>
+                    <p>Verification happens in milliseconds. No app required for users.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">🎨</div>
+                    <h3>Fully Customizable</h3>
+                    <p>Branded landing pages and custom verification flows.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="steps">
+        <div class="container">
+            <h2>How it Works</h2>
+            <div class="step-list">
+                <div class="step">
+                    <div class="number">1</div>
+                    <div class="content">
+                        <h3>Embed the Chip</h3>
+                        <p>Attach our secure NFC tags to your product or document.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="number">2</div>
+                    <div class="content">
+                        <h3>Scan with Phone</h3>
+                        <p>Users simply tap their smartphone against the tag.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="number">3</div>
+                    <div class="content">
+                        <h3>Verify Instantly</h3>
+                        <p>See immediate confirmation of authenticity on your screen.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 NFC Verification Service. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
