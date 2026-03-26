@@ -1,18 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <meta charset="utf-8">
-    <title>Weiterleitung...</title>
-    <script type="text/javascript">
-        // Holt den aktuellen Pfad (z.B. /work) und die Parameter (z.B. ?id=1)
-        var path = window.location.pathname;
-        var search = window.location.search;
-        
-        // Leitet auf die entsprechende Framer-Unterseite weiter
-        window.location.replace("https://girnstein-david.framer.website" + path + search);
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0A0A0A;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .box {
+            text-align: center;
+            max-width: 360px;
+        }
+        h1 { font-size: 48px; font-weight: 800; color: #333; margin-bottom: 16px; }
+        h2 { font-size: 20px; margin-bottom: 12px; }
+        p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+        a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #CDFF00;
+            color: #000;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-    <p>Weiterleitung zu <a href="https://girnstein-david.framer.website/">girnstein-david.framer.website</a>...</p>
+    <div class="box">
+        <h1>404</h1>
+        <h2>Page Not Found</h2>
+        <p>This link appears to be invalid. If you scanned an NFC chip, please try again by holding your phone close to the product.</p>
+        <a href="https://girnstein.studio">Back to Home</a>
+    </div>
 </body>
 </html>

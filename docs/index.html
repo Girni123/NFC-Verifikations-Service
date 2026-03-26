@@ -1,14 +1,248 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://girnstein-david.framer.website/">
-    <script type="text/javascript">
-        window.location.replace("https://girnstein-david.framer.website/");
-    </script>
-    <title>Weiterleitung...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Verification — girnstein.studio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0A0A0A;
+            color: #fff;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* ── LOADING STATE ── */
+        .loader {
+            text-align: center;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .loader.active { display: flex; }
+        .spinner {
+            width: 28px; height: 28px;
+            border: 2.5px solid rgba(255,255,255,0.1);
+            border-top-color: #CDFF00;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader p { color: #666; font-size: 13px; letter-spacing: 0.02em; }
+
+        /* ── LANDING PAGE ── */
+        .landing {
+            display: none;
+            text-align: center;
+            max-width: 420px;
+        }
+        .landing.active { display: block; }
+
+        .logo-mark {
+            width: 56px; height: 56px;
+            margin: 0 auto 32px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #CDFF00 0%, #A8D600 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-mark svg { width: 28px; height: 28px; }
+
+        .landing h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .landing .subtitle {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #777;
+            max-width: 340px;
+            margin: 0 auto 40px;
+        }
+
+        .divider {
+            width: 40px;
+            height: 1px;
+            background: #222;
+            margin: 0 auto 32px;
+        }
+
+        .how-it-works {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+        }
+
+        .step-num {
+            width: 32px; height: 32px;
+            border-radius: 10px;
+            background: #151515;
+            border: 1px solid #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #CDFF00;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .footer-note {
+            font-size: 12px;
+            color: #333;
+            letter-spacing: 0.03em;
+        }
+        .footer-note a {
+            color: #555;
+            text-decoration: none;
+            border-bottom: 1px solid #333;
+            transition: color 0.2s;
+        }
+        .footer-note a:hover { color: #CDFF00; border-color: #CDFF00; }
+
+        /* ── ERROR STATE ── */
+        .error-box {
+            display: none;
+            text-align: center;
+            max-width: 360px;
+        }
+        .error-box.active { display: block; }
+        .error-box h2 { font-size: 18px; margin-bottom: 10px; }
+        .error-box p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+        .error-box a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #CDFF00;
+            color: #000;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
-    <p>Seite wird geladen... Falls nichts passiert, <a href="https://girnstein-david.framer.website/">hier klicken</a>.</p>
+
+<!-- LOADING -->
+<div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Loading product page...</p>
+</div>
+
+<!-- LANDING PAGE (shown when no NFC params) -->
+<div class="landing" id="landing">
+    <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+        </svg>
+    </div>
+
+    <h1>NFC Product Verification</h1>
+    <p class="subtitle">Scan the NFC chip on your product to verify its authenticity and view detailed product information.</p>
+
+    <div class="divider"></div>
+
+    <div class="how-it-works">
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-label">Scan NFC chip on product</div>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-label">View product details</div>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-label">Verify authenticity</div>
+        </div>
+    </div>
+
+    <p class="footer-note">Powered by <a href="#">girnstein.studio</a></p>
+</div>
+
+<!-- ERROR -->
+<div class="error-box" id="errorBox">
+    <h2>Invalid Link</h2>
+    <p>This product link appears to be incomplete. Please scan the NFC chip again.</p>
+    <a href="./">Back to Home</a>
+</div>
+
+<script>
+/**
+ * ROUTER / DISPATCHER
+ *
+ * Flow:
+ * 1. No NFC params → show landing page
+ * 2. NFC params present → call Product-Data Lambda → redirect to correct template
+ * 3. Direct template links still work: /templates/template-1-bold.html?uid=...
+ */
+
+const PRODUCT_DATA_LAMBDA = 'https://YOUR_API_GATEWAY_URL/product-page';
+const DEFAULT_TEMPLATE = 'template-1-bold';
+const VALID_TEMPLATES = ['template-1-bold', 'template-2-clean', 'template-3-minimal'];
+
+(async function route() {
+    const params = new URLSearchParams(window.location.search);
+    const uid = params.get('uid');
+    const ctr = params.get('ctr');
+    const cmac = params.get('cmac');
+
+    // ── No NFC params → Landing Page ──
+    if (!uid && !ctr && !cmac) {
+        document.getElementById('landing').classList.add('active');
+        return;
+    }
+
+    // ── NFC params present → Loading + Route to Template ──
+    document.getElementById('loader').classList.add('active');
+
+    let templateName = params.get('t') || null;
+
+    if (!templateName) {
+        try {
+            const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid)}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}`);
+            if (res.ok) {
+                const result = await res.json();
+                templateName = result.template || DEFAULT_TEMPLATE;
+            } else {
+                templateName = DEFAULT_TEMPLATE;
+            }
+        } catch (e) {
+            templateName = DEFAULT_TEMPLATE;
+        }
+    }
+
+    if (!VALID_TEMPLATES.includes(templateName)) {
+        templateName = DEFAULT_TEMPLATE;
+    }
+
+    // Redirect to template, keeping all URL params
+    window.location.replace(`./templates/${templateName}.html${window.location.search}`);
+})();
+</script>
 </body>
 </html>
