@@ -201,9 +201,8 @@
  * 3. Direct template links still work: /templates/template-1-bold.html?uid=...
  */
 
-const PRODUCT_DATA_LAMBDA = 'https://YOUR_API_GATEWAY_URL/product-page';
-const DEFAULT_TEMPLATE = 'template-1-bold';
-const VALID_TEMPLATES = ['template-1-bold', 'template-2-clean', 'template-3-minimal'];
+const PRODUCT_DATA_LAMBDA = 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page';
+const DEFAULT_TEMPLATE_FILE = 'template-1-bold.html';
 
 (async function route() {
     const params = new URLSearchParams(window.location.search);
@@ -220,28 +219,36 @@ const VALID_TEMPLATES = ['template-1-bold', 'template-2-clean', 'template-3-mini
     // ── NFC params present → Loading + Route to Template ──
     document.getElementById('loader').classList.add('active');
 
-    let templateName = params.get('t') || null;
+    let templateFile = null;
 
-    if (!templateName) {
-        try {
-            const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid)}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}`);
-            if (res.ok) {
-                const result = await res.json();
-                templateName = result.template || DEFAULT_TEMPLATE;
-            } else {
-                templateName = DEFAULT_TEMPLATE;
+    try {
+        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid)}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}`);
+        if (res.ok) {
+            const result = await res.json();
+            // Lambda returns template_file (e.g. "template-2-clean.html")
+            templateFile = result.template_file || DEFAULT_TEMPLATE_FILE;
+        } else {
+            // Even on 404, Lambda may return a template_file
+            try {
+                const errResult = await res.json();
+                templateFile = errResult.template_file || DEFAULT_TEMPLATE_FILE;
+            } catch(e2) {
+                templateFile = DEFAULT_TEMPLATE_FILE;
             }
-        } catch (e) {
-            templateName = DEFAULT_TEMPLATE;
         }
+    } catch (e) {
+        templateFile = DEFAULT_TEMPLATE_FILE;
     }
 
-    if (!VALID_TEMPLATES.includes(templateName)) {
-        templateName = DEFAULT_TEMPLATE;
+    if (!templateFile) templateFile = DEFAULT_TEMPLATE_FILE;
+
+    // Sicherheit: Dateiname darf nur Buchstaben, Zahlen, Bindestriche und .html enthalten
+    if (!/^[a-zA-Z0-9_-]+\.html$/.test(templateFile)) {
+        templateFile = DEFAULT_TEMPLATE_FILE;
     }
 
     // Redirect to template, keeping all URL params
-    window.location.replace(`./templates/${templateName}.html${window.location.search}`);
+    window.location.replace(`./templates/${templateFile}${window.location.search}`);
 })();
 </script>
 </body>

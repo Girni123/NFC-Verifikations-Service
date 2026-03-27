@@ -23,9 +23,9 @@
 // CONFIGURATION — Replace with your actual values
 // ═══════════════════════════════════════════════
 const CONFIG = {
-  CF_SITE_KEY: '__CF_SITE_KEY__',                    // Cloudflare Turnstile site key — replace!
+  CF_SITE_KEY: '0x4AAAAAACwaUtYu34lDvzDL',              // Cloudflare Turnstile site key
   VERIFICATION_LAMBDA: 'https://cgh2mb4wta.execute-api.eu-north-1.amazonaws.com/verification',
-  PRODUCT_DATA_LAMBDA: 'https://YOUR_API_GATEWAY_URL/product-page',  // Replace with your product-data Lambda
+  PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page',
   TOKEN_TTL: 4 * 60 * 1000,  // 4 minutes
 };
 
@@ -235,7 +235,8 @@ async function loadProductData() {
  *   brand_name          → Brand name
  *
  * CORE OPTIONAL FIELDS:
- *   product_size         → Size (e.g. "M", "42", "One Size")
+ *   sizes_available      → Array of sizes (e.g. ["S", "M", "L", "XL"])
+ *   product_size         → Legacy single size (e.g. "M", "42", "One Size")
  *   product_category     → Category (e.g. "Premium Outerwear")
  *   hero_image_url       → Main product image URL
  *   description          → Product description text
@@ -269,6 +270,18 @@ async function loadProductData() {
  *   custom_fields: [
  *     { label: "Season", value: "Summer 2025" },
  *     { label: "Designer", value: "John Doe" },
+ *   ]
+ *
+ * INFO CARDS (array, optional — for bold template info grid):
+ *   info_cards: [
+ *     { label: "Material", value: "Full-Grain Leather" },
+ *     { label: "Origin", value: "Italy" },
+ *   ]
+ *
+ * SPEC CARDS (array, optional — for clean template specs grid):
+ *   spec_cards: [
+ *     { label: "Material", value: "80% Wool" },
+ *     { label: "Origin", value: "Italy" },
  *   ]
  *
  * HERO BADGE / LABEL (optional):
@@ -314,12 +327,40 @@ function applyGenericProductData(data) {
   setText('brandName', data.brand_name);
 
   // ── CORE OPTIONAL FIELDS ──
-  setText('productSize', data.product_size);
-  setText('activeSize', data.product_size);
   setText('productCategory', data.product_category);
   setImage('heroImage', data.hero_image_url);
   setText('heroBadge', data.hero_badge_text);
   setText('heroLabel', data.hero_badge_text);
+
+  // ── SIZES (dynamic from sizes_available array) ──
+  const sizes = data.sizes_available || (data.product_size ? [data.product_size] : []);
+  if (sizes.length > 0) {
+    // Template-2-clean: size chips in sizeOptions container
+    const sizeOpts = document.getElementById('sizeOptions');
+    if (sizeOpts) {
+      sizeOpts.innerHTML = sizes.map((s, i) =>
+        `<div class="size-chip${i === 0 ? ' active' : ''}">${s}</div>`
+      ).join('');
+    }
+    // Template-3-minimal: size-value boxes
+    const sizeValues = document.querySelector('.size-values');
+    if (sizeValues) {
+      sizeValues.innerHTML = sizes.map(s =>
+        `<span class="size-value">${s}</span>`
+      ).join('');
+    }
+    // Template-1-bold: single size pill (show first size or comma-joined)
+    setText('productSize', sizes.join(', '));
+    setText('activeSize', sizes[0]);
+  } else {
+    // Hide size-related elements if no sizes
+    const sizeRow = document.querySelector('.product-meta');
+    if (sizeRow) sizeRow.style.display = 'none';
+    const sizeRow2 = document.querySelector('.product-size-row');
+    if (sizeRow2) sizeRow2.style.display = 'none';
+    const sizeRow3 = document.getElementById('sizeRow');
+    if (sizeRow3) sizeRow3.style.display = 'none';
+  }
 
   // Description
   if (data.description) {
@@ -338,39 +379,76 @@ function applyGenericProductData(data) {
     hideSection('storySection');
   }
 
-  // Shop link
+  // Shop link (visible for ALL templates including minimal)
   if (data.shop_url) {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
       shopEl.href = data.shop_url;
+      shopEl.classList.remove('hidden');
       shopEl.classList.add('visible');
       shopEl.style.display = '';
     }
   } else {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
+      shopEl.classList.add('hidden');
       shopEl.style.display = 'none';
     }
   }
 
-  // ── INFO CARDS (template-1-bold) ──
-  if (data.material) { setText('infoVal1', data.material); } else { hideSection('infoCard1'); }
-  if (data.origin) { setText('infoVal2', data.origin); } else { hideSection('infoCard2'); }
-  if (data.collection) { setText('infoVal3', data.collection); } else { hideSection('infoCard3'); }
-  if (data.edition) { setText('infoVal4', data.edition); } else { hideSection('infoCard4'); }
+  // ── INFO CARDS (template-1-bold) — editable labels via info_cards array ──
+  if (data.info_cards && data.info_cards.length > 0) {
+    // Custom info cards: each has {label, value}
+    const grid = document.getElementById('infoGrid');
+    if (grid) {
+      // Hide all default cards first
+      for (let i = 1; i <= 4; i++) hideSection('infoCard' + i);
+      // Show only the provided ones
+      data.info_cards.forEach((card, i) => {
+        const idx = i + 1;
+        if (idx <= 4) {
+          setText('infoLabel' + idx, card.label);
+          setText('infoVal' + idx, card.value);
+          showSection('infoCard' + idx);
+        }
+      });
+    }
+  } else {
+    // Fallback: use individual fields with default labels
+    if (data.material) { setText('infoVal1', data.material); } else { hideSection('infoCard1'); }
+    if (data.origin) { setText('infoVal2', data.origin); } else { hideSection('infoCard2'); }
+    if (data.collection) { setText('infoVal3', data.collection); } else { hideSection('infoCard3'); }
+    if (data.edition) { setText('infoVal4', data.edition); } else { hideSection('infoCard4'); }
+  }
 
-  // ── SPECS GRID (template-2-clean) ──
-  setText('specMat', data.material);
-  setText('specOrigin', data.origin);
-  setText('specWeight', data.weight);
-  setText('specCare', data.care_instructions);
+  // ── SPECS GRID (template-2-clean) — editable labels via spec_cards array ──
+  if (data.spec_cards && data.spec_cards.length > 0) {
+    const specsGrid = document.getElementById('specsGrid');
+    if (specsGrid) {
+      specsGrid.innerHTML = data.spec_cards.map((card, i) => {
+        const idx = i + 1;
+        return `<div class="spec-cell" id="specCell${idx}"><span class="spec-key" id="specKey${idx}">${card.label}</span><span class="spec-val" id="specVal${idx}">${card.value}</span></div>`;
+      }).join('');
+    }
+    showSection('specsSection');
+  } else {
+    // Fallback: use individual fields
+    setText('specVal1', data.material);
+    setText('specVal2', data.origin);
+    setText('specVal3', data.weight);
+    setText('specVal4', data.care_instructions);
+    // Also set old IDs for backwards compatibility
+    setText('specMat', data.material);
+    setText('specOrigin', data.origin);
+    setText('specWeight', data.weight);
+    setText('specCare', data.care_instructions);
+  }
 
   // ── DETAIL LIST (template-1-bold) ──
   setText('detailProd', data.production);
   setText('detailSust', data.sustainability);
   setText('detailCare', data.care_instructions);
 
-  // Check if detail section has any data
   if (!data.production && !data.sustainability && !data.care_instructions) {
     hideSection('detailSection');
   } else {
@@ -393,7 +471,6 @@ function applyGenericProductData(data) {
     }
     showSection('sustainSection');
   } else if (data.sustainability) {
-    // Simple text sustainability
     setText('sustainText', data.sustainability);
     showSection('sustainSection');
   } else {
@@ -460,24 +537,13 @@ function applyGenericProductData(data) {
   }
 
   // ── SPECS SECTION visibility ──
-  if (!data.material && !data.origin && !data.weight && !data.care_instructions) {
+  if (!data.spec_cards && !data.material && !data.origin && !data.weight && !data.care_instructions) {
     hideSection('specsSection');
   }
 
   // ── INFO GRID visibility ──
-  if (!data.material && !data.origin && !data.collection && !data.edition) {
+  if (!data.info_cards && !data.material && !data.origin && !data.collection && !data.edition) {
     hideSection('infoGrid');
-  }
-
-  // ── SIZE visibility ──
-  if (!data.product_size) {
-    // Hide size-related elements
-    const sizeRow = document.querySelector('.product-meta');
-    if (sizeRow) sizeRow.style.display = 'none';
-    const sizeRow2 = document.querySelector('.product-size-row');
-    if (sizeRow2) sizeRow2.style.display = 'none';
-    const sizeRow3 = document.querySelector('.size-row');
-    if (sizeRow3) sizeRow3.style.display = 'none';
   }
 }
 

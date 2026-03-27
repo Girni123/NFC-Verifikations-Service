@@ -100,13 +100,19 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+  .size-values {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
   .size-value {
     font-size: 15px;
     font-weight: 700;
     background: var(--black);
     color: #fff;
-    width: 44px;
+    min-width: 44px;
     height: 44px;
+    padding: 0 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,7 +143,7 @@
 
   /* ── SHOP LINK ── */
   .shop-link {
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -149,7 +155,7 @@
     font-size: 14px;
     font-weight: 600;
   }
-  .shop-link.visible { display: flex; }
+  .shop-link.hidden { display: none; }
 
   /* ── BOTTOM BAR ── */
   .bottom-bar {
@@ -321,9 +327,11 @@
   <div class="info">
     <h1 class="product-name" id="productName">Essential Crew T-Shirt</h1>
 
-    <div class="size-row">
+    <div class="size-row" id="sizeRow">
       <span class="size-label">Size</span>
-      <span class="size-value" id="productSize">L</span>
+      <div class="size-values" id="sizeOptions">
+        <!-- Sizes are dynamically populated from data.sizes_available -->
+      </div>
     </div>
 
     <div class="separator"></div>

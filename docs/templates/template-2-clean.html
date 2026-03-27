@@ -135,6 +135,7 @@
   .size-options {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
   }
   .size-chip {
     width: 40px;
@@ -178,18 +179,6 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 14px;
-  }
-  .section-number {
-    width: 24px;
-    height: 24px;
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--primary);
-    flex-shrink: 0;
   }
   .section-title {
     font-size: 11px;
@@ -509,13 +498,10 @@
   <div class="product-block anim d2">
     <span class="product-eyebrow" id="productCategory">Premium Outerwear</span>
     <h1 class="product-title" id="productName">Wool Blend Overcoat</h1>
-    <div class="product-size-row">
+    <div class="product-size-row" id="sizeRow">
       <span class="size-label">Size</span>
       <div class="size-options" id="sizeOptions">
-        <div class="size-chip">S</div>
-        <div class="size-chip active" id="activeSize">M</div>
-        <div class="size-chip">L</div>
-        <div class="size-chip">XL</div>
+        <!-- Sizes are dynamically populated from data.sizes_available -->
       </div>
     </div>
   </div>
@@ -525,7 +511,6 @@
     <!-- Description -->
     <div class="section-box anim d3" id="descSection">
       <div class="section-header">
-        <span class="section-number">01</span>
         <span class="section-title">Description</span>
       </div>
       <p class="section-text" id="descText">A timeless overcoat crafted from premium Italian wool blend. The relaxed silhouette features a structured shoulder, hidden button placket, and fully lined interior for exceptional comfort and warmth.</p>
@@ -534,7 +519,6 @@
     <!-- Sustainability -->
     <div class="section-box anim d4" id="sustainSection">
       <div class="section-header">
-        <span class="section-number">02</span>
         <span class="section-title">Sustainability</span>
       </div>
       <div class="feature-list" id="featureList">
@@ -565,7 +549,6 @@
     <!-- Story -->
     <div class="section-box anim d4" id="storySection">
       <div class="section-header">
-        <span class="section-number">03</span>
         <span class="section-title">The Story</span>
       </div>
       <p class="section-text" id="storyText">Every garment tells a story. From the rolling hills of Tuscany where our wool is sourced, to the skilled hands of our master tailors — this piece carries a heritage of craftsmanship spanning three generations.</p>
@@ -574,38 +557,28 @@
     <!-- Specs -->
     <div class="section-box anim d5" id="specsSection">
       <div class="section-header">
-        <span class="section-number">04</span>
         <span class="section-title">Specifications</span>
       </div>
       <div class="specs-grid" id="specsGrid">
-        <div class="spec-cell"><span class="spec-key">Material</span><span class="spec-val" id="specMat">80% Wool, 20% Cashmere</span></div>
-        <div class="spec-cell"><span class="spec-key">Origin</span><span class="spec-val" id="specOrigin">Italy</span></div>
-        <div class="spec-cell"><span class="spec-key">Weight</span><span class="spec-val" id="specWeight">450 g/m²</span></div>
-        <div class="spec-cell"><span class="spec-key">Care</span><span class="spec-val" id="specCare">Dry Clean</span></div>
+        <div class="spec-cell" id="specCell1"><span class="spec-key" id="specKey1">Material</span><span class="spec-val" id="specVal1">80% Wool, 20% Cashmere</span></div>
+        <div class="spec-cell" id="specCell2"><span class="spec-key" id="specKey2">Origin</span><span class="spec-val" id="specVal2">Italy</span></div>
+        <div class="spec-cell" id="specCell3"><span class="spec-key" id="specKey3">Weight</span><span class="spec-val" id="specVal3">450 g/m²</span></div>
+        <div class="spec-cell" id="specCell4"><span class="spec-key" id="specKey4">Care</span><span class="spec-val" id="specVal4">Dry Clean</span></div>
       </div>
     </div>
 
     <!-- Extra Text -->
     <div class="section-box anim d5" id="extraSection">
       <div class="section-header">
-        <span class="section-number">05</span>
         <span class="section-title">Production</span>
       </div>
       <p class="section-text" id="extraText">Produced in limited quantities to ensure the highest standards of quality. Each piece undergoes rigorous quality control, including hand-inspection of every seam and finish before receiving its unique NFC authentication chip.</p>
     </div>
   </div>
 
-  <!-- GALLERY -->
+  <!-- GALLERY (populated dynamically from gallery_images) -->
   <div class="gallery-row anim d6" id="gallerySection">
-    <div class="gallery-cell">
-      <img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop" alt="Detail 1">
-    </div>
-    <div class="gallery-cell">
-      <img src="https://images.unsplash.com/photo-1520975954732-35dd22299614?w=400&h=400&fit=crop" alt="Detail 2">
-    </div>
-    <div class="gallery-cell">
-      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop" alt="Detail 3">
-    </div>
+    <!-- Gallery cells are dynamically populated from data.gallery_images -->
   </div>
 
   <!-- SHOP LINK -->

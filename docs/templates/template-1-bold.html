@@ -501,22 +501,22 @@
       <p class="section-text" id="productDesc">Handcrafted from premium full-grain leather, this jacket represents the pinnacle of modern craftsmanship. Each piece is individually numbered and verified through our NFC authentication system.</p>
     </div>
 
-    <!-- Info Cards -->
+    <!-- Info Cards (labels + values both editable) -->
     <div class="info-grid animate-in delay-3" id="infoGrid">
       <div class="info-card" id="infoCard1">
-        <span class="info-card-label">Material</span>
+        <span class="info-card-label" id="infoLabel1">Material</span>
         <span class="info-card-value" id="infoVal1">Full-Grain Leather</span>
       </div>
       <div class="info-card" id="infoCard2">
-        <span class="info-card-label">Origin</span>
+        <span class="info-card-label" id="infoLabel2">Origin</span>
         <span class="info-card-value" id="infoVal2">Italy</span>
       </div>
       <div class="info-card" id="infoCard3">
-        <span class="info-card-label">Collection</span>
+        <span class="info-card-label" id="infoLabel3">Collection</span>
         <span class="info-card-value" id="infoVal3">FW 2025</span>
       </div>
       <div class="info-card" id="infoCard4">
-        <span class="info-card-label">Edition</span>
+        <span class="info-card-label" id="infoLabel4">Edition</span>
         <span class="info-card-value" id="infoVal4">Limited</span>
       </div>
     </div>
@@ -539,13 +539,11 @@
       </div>
     </div>
 
-    <!-- Gallery -->
+    <!-- Gallery (populated dynamically from gallery_images) -->
     <div class="section animate-in delay-5" id="gallerySection">
       <span class="section-label">Gallery</span>
       <div class="gallery" id="gallery">
-        <img class="gallery-img" src="https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&h=400&fit=crop" alt="Detail 1">
-        <img class="gallery-img" src="https://images.unsplash.com/photo-1520975954732-35dd22299614?w=300&h=400&fit=crop" alt="Detail 2">
-        <img class="gallery-img" src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&h=400&fit=crop" alt="Detail 3">
+        <!-- Gallery images are dynamically populated from data.gallery_images -->
       </div>
     </div>
 
