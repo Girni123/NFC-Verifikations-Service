@@ -209,9 +209,10 @@ const DEFAULT_TEMPLATE_FILE = 'template-1-bold.html';
     const uid = params.get('uid');
     const ctr = params.get('ctr');
     const cmac = params.get('cmac');
+    const enc = params.get('enc');
 
     // ── No NFC params → Landing Page ──
-    if (!uid && !ctr && !cmac) {
+    if (!uid && !ctr && !cmac && !enc) {
         document.getElementById('landing').classList.add('active');
         return;
     }
@@ -222,7 +223,7 @@ const DEFAULT_TEMPLATE_FILE = 'template-1-bold.html';
     let templateFile = null;
 
     try {
-        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid)}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}`);
+        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid || '')}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}${enc ? '&enc=' + encodeURIComponent(enc) : ''}`);
         if (res.ok) {
             const result = await res.json();
             // Lambda returns template_file (e.g. "template-2-clean.html")

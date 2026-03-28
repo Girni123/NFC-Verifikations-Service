@@ -84,7 +84,7 @@ function updateButton(state, label) {
   switch (state) {
     case 'wait':
       btn.disabled = true;
-      btn.innerHTML = 'Security Check...';
+      btn.innerHTML = 'Verifying you\'re human...';
       break;
     case 'ready':
       btn.innerHTML = typeof getReadyLabel === 'function' ? getReadyLabel() : 'Verify Authenticity';
@@ -178,6 +178,14 @@ function showResult(type, code, data) {
 function closeResult() {
   const overlay = document.getElementById('resultOverlay');
   if (overlay) overlay.classList.remove('visible');
+
+  // Reset button state
+  isLoading = false;
+  if (cfToken && tokenTimestamp && (Date.now() - tokenTimestamp <= CONFIG.TOKEN_TTL)) {
+    updateButton('ready');
+  } else {
+    updateButton('wait');
+  }
 }
 
 // ═══════════════════════════════════════════════

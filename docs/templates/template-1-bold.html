@@ -31,12 +31,16 @@
   }
 
   .page {
-    max-width: 430px;
+    width: 100%;
+    max-width: 520px;
     margin: 0 auto;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
     position: relative;
+  }
+  @media (max-width: 767px) {
+    .page { max-width: 100%; }
   }
 
   /* ── HERO ── */
@@ -274,11 +278,14 @@
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 430px;
+    max-width: 520px;
     z-index: 100;
     padding: 12px 20px;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
     background: linear-gradient(0deg, var(--bg) 70%, transparent);
+  }
+  @media (max-width: 767px) {
+    .bottom-bar { max-width: 100%; }
   }
   .bottom-bar-inner {
     display: flex;
@@ -362,7 +369,7 @@
   .result-sheet {
     position: relative;
     width: 100%;
-    max-width: 430px;
+    max-width: 520px;
     background: var(--card);
     border-top-left-radius: 24px;
     border-top-right-radius: 24px;
@@ -375,6 +382,9 @@
     align-items: center;
     gap: 16px;
     text-align: center;
+  }
+  @media (max-width: 767px) {
+    .result-sheet { max-width: 100%; }
   }
   .result-overlay.visible .result-sheet { transform: translateY(0); }
 
