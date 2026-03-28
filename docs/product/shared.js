@@ -32,6 +32,7 @@ const CONFIG = {
 let cfToken = null;
 let tokenTimestamp = null;
 let isLoading = false;
+let productDataLoaded = false;  // true wenn Produktdaten erfolgreich geladen
 
 // ═══════════════════════════════════════════════
 // INITIALIZATION
@@ -78,8 +79,15 @@ setInterval(() => {
 function updateButton(state, label) {
   const btn = document.getElementById('verifyBtn');
   if (!btn) return;
+
+  // Wenn keine Produktdaten geladen → Button bleibt deaktiviert
+  if (!productDataLoaded && state === 'ready') {
+    return;  // Nicht aktivieren
+  }
+
   btn.className = 'verify-btn';
   btn.disabled = false;
+  btn.style.opacity = '1';
 
   switch (state) {
     case 'wait':
@@ -196,12 +204,23 @@ async function loadProductData() {
   const uid = params.get('uid');
   const enc = params.get('e') || params.get('enc');  // Chip sendet "e=", Fallback auf "enc="
   const bid = params.get('bid');
+  const ctr = params.get('ctr');
+  const cmac = params.get('cmac');
+
+  // ── DEBUG: Alle URL-Parameter loggen ──
+  console.group('%c[ProductPage] DEBUG', 'color: #CDFF00; background: #111; padding: 2px 6px; border-radius: 3px;');
+  console.log('URL:', window.location.href);
+  console.log('Parameter:', { uid, enc: enc ? enc.substring(0, 16) + '...' : null, bid, ctr, cmac });
 
   // Kein uid UND kein enc → kein NFC-Scan, Preview-Modus
   if (!uid && !enc) {
-    console.log('[ProductPage] No uid/enc found — preview mode');
+    console.log('Kein uid/enc → Preview-Modus');
+    console.groupEnd();
     return;
   }
+
+  // ── Sofort: Platzhalter verstecken bevor Daten geladen werden ──
+  hideAllPlaceholders();
 
   try {
     // Call product-data Lambda — uid und/oder enc mitgeben
@@ -211,25 +230,44 @@ async function loadProductData() {
     if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
     lambdaUrl = lambdaUrl.replace(/&$/, '');
 
-    console.log('[ProductPage] Calling Lambda:', lambdaUrl.replace(CONFIG.PRODUCT_DATA_LAMBDA, '...'));
+    console.log('Lambda Request:', lambdaUrl);
+    const t0 = performance.now();
     const res = await fetch(lambdaUrl);
+    const duration = Math.round(performance.now() - t0);
+    console.log(`Lambda Response: ${res.status} ${res.statusText} (${duration}ms)`);
+
+    // Response-Headers loggen (CORS etc.)
+    console.log('Response Headers:', {
+      'content-type': res.headers.get('content-type'),
+      'access-control-allow-origin': res.headers.get('access-control-allow-origin'),
+    });
 
     if (!res.ok) {
-      console.warn('[ProductPage] Lambda returned', res.status);
       const errBody = await res.json().catch(() => ({}));
-      console.warn('[ProductPage] Error:', errBody.error_code, errBody.error);
+      console.error('Lambda Error Response:', JSON.stringify(errBody, null, 2));
+      console.groupEnd();
       showDataError(res.status, errBody);
       return;
     }
 
     const response = await res.json();
+    console.log('Lambda Full Response:', JSON.stringify(response, null, 2));
+
     const productData = response.data || response;
+    console.log('Extracted productData:', JSON.stringify(productData, null, 2));
+    console.log('template_id:', response.template_id, '| template_file:', response.template_file);
 
     if (!productData || (!productData.product_name && !productData.brand_name)) {
-      console.warn('[ProductPage] Lambda returned empty data');
+      console.warn('Keine product_name/brand_name in Antwort → Fehler anzeigen');
+      console.groupEnd();
       showDataError(0, { error_code: 'EMPTY_DATA' });
       return;
     }
+
+    // Erfolgreich geladen
+    productDataLoaded = true;
+    console.log('Produktdaten erfolgreich geladen, wende auf Template an...');
+    console.groupEnd();
 
     // Let the template-specific function handle the rendering
     if (typeof applyProductData === 'function') {
@@ -238,9 +276,32 @@ async function loadProductData() {
       applyGenericProductData(productData);
     }
   } catch (e) {
-    console.warn('[ProductPage] Could not load product data:', e.message);
+    console.error('Netzwerk-/Fetch-Fehler:', e.message, e);
+    console.groupEnd();
     showDataError(0, { error_code: 'NETWORK_ERROR', error: e.message });
   }
+}
+
+/**
+ * Versteckt alle Platzhalter-Inhalte sofort beim Laden,
+ * damit kein falsches Produktbild/Name aufblitzt.
+ */
+function hideAllPlaceholders() {
+  // Hero-Image verstecken bis echte Daten da sind
+  const heroImg = document.getElementById('heroImage');
+  if (heroImg) heroImg.style.opacity = '0';
+
+  // Produktname/Brand ausblenden
+  const nameEl = document.getElementById('productName');
+  if (nameEl) nameEl.style.opacity = '0';
+  const brandEl = document.getElementById('brandName');
+  if (brandEl) brandEl.style.opacity = '0';
+
+  // Sizes, Shop, Meta ausblenden
+  const sizeRow = document.getElementById('sizeRow');
+  if (sizeRow) sizeRow.style.opacity = '0';
+  const shopLink = document.getElementById('shopLink');
+  if (shopLink) shopLink.style.opacity = '0';
 }
 
 /**
@@ -248,6 +309,8 @@ async function loadProductData() {
  * Ersetzt die Platzhalter-Inhalte durch eine klare Fehlermeldung.
  */
 function showDataError(status, errBody) {
+  productDataLoaded = false;
+
   // Verstecke Platzhalter-Inhalte
   const hideIds = ['descSection', 'storySection', 'detailSection', 'gallerySection',
     'specsSection', 'sustainSection', 'extraSection', 'infoGrid',
@@ -257,25 +320,28 @@ function showDataError(status, errBody) {
     if (el) el.style.display = 'none';
   });
 
-  // Setze Produktname auf Fehlermeldung
+  // Setze Produktname auf Fehlermeldung (sichtbar machen)
   const nameEl = document.getElementById('productName');
-  if (nameEl) nameEl.textContent = 'Produktdaten nicht verfügbar';
+  if (nameEl) { nameEl.textContent = 'Produktdaten nicht verfügbar'; nameEl.style.opacity = '1'; }
 
   const brandEl = document.getElementById('brandName');
-  if (brandEl) brandEl.textContent = '';
+  if (brandEl) { brandEl.textContent = ''; brandEl.style.opacity = '1'; }
 
   const catEl = document.getElementById('productCategory');
   if (catEl) catEl.textContent = '';
 
-  // Verstecke Hero-Image oder setze Fallback
+  // Verstecke Hero-Image komplett
   const heroImg = document.getElementById('heroImage');
-  if (heroImg) heroImg.style.display = 'none';
+  if (heroImg) { heroImg.style.display = 'none'; heroImg.style.opacity = '1'; }
+  // Verstecke auch den Image-Container
+  const imgContainer = document.querySelector('.product-image, .hero-section');
+  if (imgContainer) imgContainer.style.display = 'none';
 
   // Verstecke Size, Shop etc.
   const sizeRow = document.getElementById('sizeRow');
-  if (sizeRow) sizeRow.style.display = 'none';
+  if (sizeRow) { sizeRow.style.display = 'none'; sizeRow.style.opacity = '1'; }
   const shopLink = document.getElementById('shopLink');
-  if (shopLink) shopLink.style.display = 'none';
+  if (shopLink) { shopLink.style.display = 'none'; shopLink.style.opacity = '1'; }
   const meta = document.querySelector('.product-meta');
   if (meta) meta.style.display = 'none';
 
@@ -289,6 +355,22 @@ function showDataError(status, errBody) {
     descText.textContent = 'Die Produktdaten konnten leider nicht geladen werden. Bitte versuche es später erneut oder scanne den NFC-Chip noch einmal.';
     const label = descSection.querySelector('.section-label, .section-title, h3');
     if (label) label.textContent = 'Hinweis';
+  }
+
+  // ── Verify-Button deaktivieren wenn keine Daten geladen ──
+  disableVerifyButton();
+}
+
+/**
+ * Deaktiviert den Verify-Button dauerhaft wenn keine Produktdaten vorhanden.
+ */
+function disableVerifyButton() {
+  const btn = document.getElementById('verifyBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = 'Verifizierung nicht möglich';
+    btn.classList.add('error');
+    btn.style.opacity = '0.5';
   }
 }
 
@@ -357,6 +439,14 @@ function showDataError(status, errBody) {
  */
 function applyGenericProductData(data) {
   if (!data) return;
+
+  // ── Platzhalter wieder sichtbar machen (wurden in hideAllPlaceholders versteckt) ──
+  ['productName', 'brandName', 'sizeRow', 'shopLink'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = '1';
+  });
+  const heroImg = document.getElementById('heroImage');
+  if (heroImg) heroImg.style.opacity = '1';
 
   // Update browser tab title with product name
   if (data.product_name) {
