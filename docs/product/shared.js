@@ -243,15 +243,39 @@ async function loadProductData() {
     });
 
     if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
+      let errBody = await res.json().catch(() => ({}));
+      // Unwrap double-JSON if needed
+      if (errBody && typeof errBody.body === 'string' && errBody.statusCode) {
+        try { errBody = JSON.parse(errBody.body); } catch(e) { /* keep original */ }
+      }
       console.error('Lambda Error Response:', JSON.stringify(errBody, null, 2));
       console.groupEnd();
       showDataError(res.status, errBody);
       return;
     }
 
-    const response = await res.json();
-    console.log('Lambda Full Response:', JSON.stringify(response, null, 2));
+    const rawResponse = await res.json();
+    console.log('Lambda Raw Response:', JSON.stringify(rawResponse, null, 2));
+
+    // ── Handle double-wrapped API Gateway response ──
+    // API Gateway HTTP API v2 (payload format 2.0) may return the entire
+    // Lambda proxy response as JSON: { statusCode, headers, body: "..." }
+    // In that case, the actual data is inside body (as a JSON string).
+    let response = rawResponse;
+    if (rawResponse && typeof rawResponse.body === 'string' && rawResponse.statusCode) {
+      try {
+        response = JSON.parse(rawResponse.body);
+        console.log('Unwrapped double-JSON body:', JSON.stringify(response, null, 2));
+      } catch (e) {
+        console.warn('body is a string but not valid JSON:', rawResponse.body);
+      }
+      // Check if the inner statusCode indicates an error
+      if (rawResponse.statusCode >= 400) {
+        console.error('Lambda returned error status:', rawResponse.statusCode);
+        showDataError(rawResponse.statusCode, response);
+        return;
+      }
+    }
 
     const productData = response.data || response;
     console.log('Extracted productData:', JSON.stringify(productData, null, 2));
@@ -259,6 +283,9 @@ async function loadProductData() {
 
     if (!productData || (!productData.product_name && !productData.brand_name)) {
       console.warn('Keine product_name/brand_name in Antwort → Fehler anzeigen');
+      console.warn('Verfuegbare Keys in productData:', productData ? Object.keys(productData) : 'null');
+      console.warn('Verfuegbare Keys in response:', response ? Object.keys(response) : 'null');
+      console.warn('Verfuegbare Keys in rawResponse:', rawResponse ? Object.keys(rawResponse) : 'null');
       console.groupEnd();
       showDataError(0, { error_code: 'EMPTY_DATA' });
       return;

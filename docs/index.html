@@ -226,14 +226,25 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
 
     try {
         const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid || '')}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}${enc ? '&enc=' + encodeURIComponent(enc) : ''}${bid ? '&bid=' + encodeURIComponent(bid) : ''}`);
+
+        // Helper: unwrap double-JSON from API Gateway if needed
+        function unwrap(raw) {
+            if (raw && typeof raw.body === 'string' && raw.statusCode) {
+                try { return JSON.parse(raw.body); } catch(e) { return raw; }
+            }
+            return raw;
+        }
+
         if (res.ok) {
-            const result = await res.json();
-            // Lambda returns template_file (e.g. "template-2-clean.html")
+            const rawResult = await res.json();
+            const result = unwrap(rawResult);
+            // Lambda returns template_file (e.g. "p1.html")
             templateFile = result.template_file || DEFAULT_TEMPLATE_FILE;
         } else {
             // Even on 404, Lambda may return a template_file
             try {
-                const errResult = await res.json();
+                const rawErr = await res.json();
+                const errResult = unwrap(rawErr);
                 templateFile = errResult.template_file || DEFAULT_TEMPLATE_FILE;
             } catch(e2) {
                 templateFile = DEFAULT_TEMPLATE_FILE;
