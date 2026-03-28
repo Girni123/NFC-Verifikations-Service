@@ -210,7 +210,8 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
     const uid = params.get('uid');
     const ctr = params.get('ctr');
     const cmac = params.get('cmac');
-    const enc = params.get('enc');
+    const enc = params.get('e') || params.get('enc');
+    const bid = params.get('bid');
 
     // ── No NFC params → Landing Page ──
     if (!uid && !ctr && !cmac && !enc) {
@@ -224,7 +225,7 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
     let templateFile = null;
 
     try {
-        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid || '')}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}${enc ? '&enc=' + encodeURIComponent(enc) : ''}`);
+        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid || '')}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}${enc ? '&enc=' + encodeURIComponent(enc) : ''}${bid ? '&bid=' + encodeURIComponent(bid) : ''}`);
         if (res.ok) {
             const result = await res.json();
             // Lambda returns template_file (e.g. "template-2-clean.html")
@@ -253,7 +254,7 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
     }
 
     // Redirect to template, keeping all URL params
-    window.location.replace(`./templates/${templateFile}${window.location.search}`);
+    window.location.replace(`./product/${templateFile}${window.location.search}`);
 })();
 </script>
 </body>

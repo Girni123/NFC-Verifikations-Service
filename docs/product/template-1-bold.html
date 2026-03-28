@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Product Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #CDFF00;
+    --bg: #0A0A0A;
+    --card: #141414;
+    --border: #222222;
+    --text: #FFFFFF;
+    --text-muted: #888888;
+    --success: #059669;
+    --error: #DC2626;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  @media (max-width: 767px) {
+    .page { max-width: 100%; }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, var(--bg) 0%, transparent 50%);
+  }
+  .hero-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .hero-nav {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+  }
+  .nav-dot.active {
+    background: var(--accent);
+    width: 24px;
+    border-radius: 4px;
+  }
+
+  /* ── CONTENT ── */
+  .content {
+    padding: 0 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: -40px;
+    position: relative;
+    z-index: 2;
+    padding-bottom: 140px;
+  }
+
+  .product-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .product-brand {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .product-name {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+  .product-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .meta-tag {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .meta-tag svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+  }
+  .size-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .section.hidden { display: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .section-text {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #CCCCCC;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    width: 100%;
+  }
+
+  /* ── INFO CARDS ── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .info-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .info-card-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .info-card-value {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* ── DETAIL LIST ── */
+  .detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-item:last-child { border-bottom: none; }
+  .detail-key {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .detail-val {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* ── GALLERY ── */
+  .gallery {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .gallery::-webkit-scrollbar { display: none; }
+  .gallery-img {
+    width: 140px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    border: 1px solid var(--border);
+  }
+
+  /* ── SHOP LINK ── */
+  .shop-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    transition: border-color 0.2s;
+  }
+  .shop-link:active { border-color: var(--accent); }
+  .shop-link svg { width: 18px; height: 18px; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 520px;
+    z-index: 100;
+    padding: 12px 20px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, var(--bg) 70%, transparent);
+  }
+  @media (max-width: 767px) {
+    .bottom-bar { max-width: 100%; }
+  }
+  .bottom-bar-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── CAPTCHA ── */
+  #captcha-box {
+    width: 100%;
+    min-height: 0;
+    overflow: visible;
+    transition: all 0.3s ease;
+  }
+
+  /* ── VERIFY BUTTON ── */
+  .verify-btn {
+    width: 100%;
+    padding: 18px 24px;
+    border: none;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    position: relative;
+    overflow: hidden;
+    color: #000;
+    background: var(--accent);
+    box-shadow: 0 0 30px rgba(205,255,0,0.15);
+  }
+  .verify-btn:disabled {
+    background: #333;
+    color: #666;
+    box-shadow: none;
+    cursor: wait;
+  }
+  .verify-btn.loading {
+    background: #444;
+    color: #999;
+  }
+  .verify-btn.success {
+    background: var(--success);
+    color: #fff;
+    box-shadow: 0 0 30px rgba(5,150,105,0.3);
+  }
+  .verify-btn.error {
+    background: var(--error);
+    color: #fff;
+    box-shadow: 0 0 30px rgba(220,38,38,0.3);
+  }
+
+  /* ── RESULT OVERLAY ── */
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .result-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .result-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .result-sheet {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    background: var(--card);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    padding: 32px 24px;
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  @media (max-width: 767px) {
+    .result-sheet { max-width: 100%; }
+  }
+  .result-overlay.visible .result-sheet { transform: translateY(0); }
+
+  .result-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+  }
+  .result-icon.success { background: rgba(5,150,105,0.15); }
+  .result-icon.error { background: rgba(220,38,38,0.15); }
+
+  .result-title {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .result-msg {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 320px;
+  }
+  .result-details {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .result-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .result-detail-row:last-child { border-bottom: none; }
+  .result-detail-key { color: var(--text-muted); }
+  .result-detail-val { font-weight: 600; }
+
+  .result-close {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top: 2px solid #000;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .spinner.light { border-color: rgba(255,255,255,0.2); border-top-color: #fff; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in {
+    animation: fadeUp 0.5s ease forwards;
+    opacity: 0;
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+  .delay-5 { animation-delay: 0.5s; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- HERO -->
+  <div class="hero">
+    <img class="hero-img" id="heroImage" src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=1000&fit=crop" alt="Product">
+    <div class="hero-overlay"></div>
+    <div class="hero-badge" id="heroBadge">NFC Verified</div>
+    <div class="hero-nav">
+      <div class="nav-dot active"></div>
+      <div class="nav-dot"></div>
+      <div class="nav-dot"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- Product Header -->
+    <div class="product-header animate-in delay-1">
+      <span class="product-brand" id="brandName">Premium Collection</span>
+      <h1 class="product-name" id="productName">Classic Leather Jacket</h1>
+      <div class="product-meta">
+        <span class="meta-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Size
+        </span>
+        <span class="size-pill" id="productSize">M</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Description -->
+    <div class="section animate-in delay-2" id="descSection">
+      <span class="section-label">About This Piece</span>
+      <p class="section-text" id="productDesc">Handcrafted from premium full-grain leather, this jacket represents the pinnacle of modern craftsmanship. Each piece is individually numbered and verified through our NFC authentication system.</p>
+    </div>
+
+    <!-- Info Cards (labels + values both editable) -->
+    <div class="info-grid animate-in delay-3" id="infoGrid">
+      <div class="info-card" id="infoCard1">
+        <span class="info-card-label" id="infoLabel1">Material</span>
+        <span class="info-card-value" id="infoVal1">Full-Grain Leather</span>
+      </div>
+      <div class="info-card" id="infoCard2">
+        <span class="info-card-label" id="infoLabel2">Origin</span>
+        <span class="info-card-value" id="infoVal2">Italy</span>
+      </div>
+      <div class="info-card" id="infoCard3">
+        <span class="info-card-label" id="infoLabel3">Collection</span>
+        <span class="info-card-value" id="infoVal3">FW 2025</span>
+      </div>
+      <div class="info-card" id="infoCard4">
+        <span class="info-card-label" id="infoLabel4">Edition</span>
+        <span class="info-card-value" id="infoVal4">Limited</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Story Section -->
+    <div class="section animate-in delay-4" id="storySection">
+      <span class="section-label">The Story</span>
+      <p class="section-text" id="storyText">Born from a commitment to sustainability and artisan tradition, every piece in our collection carries a story of ethical production, fair wages, and environmental responsibility.</p>
+    </div>
+
+    <!-- Detail List -->
+    <div class="section animate-in delay-4" id="detailSection">
+      <span class="section-label">Details</span>
+      <div class="detail-list" id="detailList">
+        <div class="detail-item"><span class="detail-key">Production</span><span class="detail-val" id="detailProd">Handmade</span></div>
+        <div class="detail-item"><span class="detail-key">Sustainability</span><span class="detail-val" id="detailSust">Eco-Certified</span></div>
+        <div class="detail-item"><span class="detail-key">Care</span><span class="detail-val" id="detailCare">Professional Clean</span></div>
+      </div>
+    </div>
+
+    <!-- Gallery (populated dynamically from gallery_images) -->
+    <div class="section animate-in delay-5" id="gallerySection">
+      <span class="section-label">Gallery</span>
+      <div class="gallery" id="gallery">
+        <!-- Gallery images are dynamically populated from data.gallery_images -->
+      </div>
+    </div>
+
+    <!-- Shop Link -->
+    <a class="shop-link animate-in delay-5" id="shopLink" href="#" target="_blank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Shop This Product
+    </a>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-inner">
+      <div id="captcha-box"></div>
+      <button class="verify-btn" id="verifyBtn" disabled>
+        Security Check...
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-backdrop" onclick="closeResult()"></div>
+  <div class="result-sheet">
+    <div class="result-icon" id="resultIcon"></div>
+    <h2 class="result-title" id="resultTitle"></h2>
+    <p class="result-msg" id="resultMsg"></p>
+    <div class="result-details" id="resultDetails"></div>
+    <button class="result-close" onclick="closeResult()">Close</button>
+  </div>
+</div>
+
+<!-- CLOUDFLARE TURNSTILE -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- SHARED LOGIC -->
+<script src="shared.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+// TEMPLATE-1-BOLD — Custom overrides
+// ═══════════════════════════════════════════════
+
+// Custom "ready" label with shield icon
+function getReadyLabel() {
+  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Verify Authenticity';
+}
+
+// Template-specific result overlay
+function showResultOverlay(type, code, data) {
+  const overlay = document.getElementById('resultOverlay');
+  const icon = document.getElementById('resultIcon');
+  const title = document.getElementById('resultTitle');
+  const msg = document.getElementById('resultMsg');
+  const details = document.getElementById('resultDetails');
+
+  icon.className = 'result-icon ' + type;
+  details.innerHTML = '';
+
+  if (type === 'success') {
+    icon.textContent = '✓';
+    icon.style.color = '#059669';
+    title.textContent = 'Authentic Product';
+    msg.textContent = 'This product has been verified as genuine through our NFC authentication system.';
+    if (data) {
+      let rows = '';
+      if (data.product_name) rows += `<div class="result-detail-row"><span class="result-detail-key">Product</span><span class="result-detail-val">${data.product_name}</span></div>`;
+      if (data.product_size) rows += `<div class="result-detail-row"><span class="result-detail-key">Size</span><span class="result-detail-val">${data.product_size}</span></div>`;
+      if (data.production_date) rows += `<div class="result-detail-row"><span class="result-detail-key">Produced</span><span class="result-detail-val">${data.production_date}</span></div>`;
+      if (data.claim_status) rows += `<div class="result-detail-row"><span class="result-detail-key">Status</span><span class="result-detail-val">${data.claim_status}</span></div>`;
+      details.innerHTML = rows;
+    }
+  } else {
+    icon.textContent = '✕';
+    icon.style.color = '#DC2626';
+    const msgs = {
+      missing_params: ['No Tag Data', 'No NFC data was found. Please scan the NFC chip again by holding your phone close to the product.'],
+      replay: ['Already Scanned', 'This verification code has already been used. Please scan the NFC chip again to generate a new code.'],
+      fake: ['Not Verified', 'This product could not be verified as authentic. The NFC data does not match our database.'],
+      captcha: ['Security Check Failed', 'The security verification failed. Please reload the page and try again.'],
+      server_error: ['Connection Error', 'Could not reach the verification server. Please check your internet connection and try again.'],
+    };
+    const m = msgs[code] || msgs.fake;
+    title.textContent = m[0];
+    msg.textContent = m[1];
+  }
+  overlay.classList.add('visible');
+}
+</script>
+</body>
+</html>
