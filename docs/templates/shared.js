@@ -298,6 +298,13 @@ async function loadProductData() {
 function applyGenericProductData(data) {
   if (!data) return;
 
+  // Update browser tab title with product name
+  if (data.product_name) {
+    document.title = data.brand_name
+      ? `${data.product_name} — ${data.brand_name}`
+      : data.product_name;
+  }
+
   // Helper: set text content if element exists and data field is truthy
   function setText(id, value) {
     const el = document.getElementById(id);

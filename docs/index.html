@@ -202,7 +202,8 @@
  */
 
 const PRODUCT_DATA_LAMBDA = 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page';
-const DEFAULT_TEMPLATE_FILE = 'template-1-bold.html';
+const DEFAULT_TEMPLATE_FILE = 'p1.html';
+const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2.html','template-3-minimal.html':'p3.html'};
 
 (async function route() {
     const params = new URLSearchParams(window.location.search);
@@ -242,6 +243,9 @@ const DEFAULT_TEMPLATE_FILE = 'template-1-bold.html';
     }
 
     if (!templateFile) templateFile = DEFAULT_TEMPLATE_FILE;
+
+    // Legacy-Dateinamen auf neue neutrale Namen mappen
+    if (LEGACY_MAP[templateFile]) templateFile = LEGACY_MAP[templateFile];
 
     // Sicherheit: Dateiname darf nur Buchstaben, Zahlen, Bindestriche und .html enthalten
     if (!/^[a-zA-Z0-9_-]+\.html$/.test(templateFile)) {

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Product Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --black: #111111;
+    --gray: #777777;
+    --gray-light: #E5E5E5;
+    --accent: #111111;
+    --success: #16A34A;
+    --error: #DC2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 767px) {
+    .page { max-width: 100%; }
+  }
+
+  /* ── IMAGE ── */
+  .product-image {
+    width: 100%;
+    aspect-ratio: 1/1;
+    position: relative;
+    overflow: hidden;
+    background: var(--gray-light);
+  }
+  .product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .image-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .image-badge svg {
+    width: 18px;
+    height: 18px;
+    color: var(--black);
+  }
+
+  /* ── INFO AREA ── */
+  .info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 24px;
+    padding-bottom: 160px;
+    gap: 20px;
+  }
+
+  .product-name {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+
+  .size-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .size-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .size-values {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .size-value {
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--black);
+    color: #fff;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .separator {
+    height: 1px;
+    background: var(--gray-light);
+  }
+
+  /* ── OPTIONAL SECTIONS (hidden by default in minimal) ── */
+  .opt-section { display: none; }
+  .opt-section.visible { display: block; }
+  .opt-section h3 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray);
+    margin-bottom: 8px;
+  }
+  .opt-section p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #555;
+  }
+
+  /* ── SHOP LINK ── */
+  .shop-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--gray-light);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--black);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .shop-link.hidden { display: none; }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 520px;
+    z-index: 100;
+    padding: 16px 24px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, var(--bg) 70%, transparent);
+  }
+  @media (max-width: 767px) {
+    .bottom-bar { max-width: 100%; }
+  }
+  .bottom-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #captcha-box {
+    width: 100%;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .verify-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+  }
+  .verify-btn:disabled {
+    background: #CCC;
+    color: #999;
+    box-shadow: none;
+    cursor: wait;
+  }
+  .verify-btn.loading { background: #888; }
+  .verify-btn.success {
+    background: var(--success);
+    box-shadow: 0 2px 20px rgba(22,163,74,0.3);
+  }
+  .verify-btn.error {
+    background: var(--error);
+    box-shadow: 0 2px 20px rgba(220,38,38,0.3);
+  }
+
+  /* ── RESULT ── */
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    padding: 24px;
+  }
+  .result-overlay.visible { opacity: 1; pointer-events: auto; }
+  .result-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .result-card {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 36px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  @media (max-width: 767px) {
+    .result-card { width: calc(100% - 48px); }
+  }
+  .result-overlay.visible .result-card { transform: scale(1); }
+
+  .result-dot {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .result-dot.success { background: #DCFCE7; color: var(--success); }
+  .result-dot.error { background: #FEE2E2; color: var(--error); }
+
+  .result-title { font-size: 20px; font-weight: 700; }
+  .result-msg { font-size: 14px; color: var(--gray); line-height: 1.55; }
+
+  .result-details {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 11px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--gray-light);
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-key { color: var(--gray); }
+  .result-val { font-weight: 600; }
+
+  .result-close {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--black);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- PRODUCT IMAGE -->
+  <div class="product-image">
+    <img id="heroImage" src="https://images.unsplash.com/photo-1578681994506-b8f463449011?w=800&h=800&fit=crop" alt="Product">
+    <div class="image-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <div class="info">
+    <h1 class="product-name" id="productName">Essential Crew T-Shirt</h1>
+
+    <div class="size-row" id="sizeRow">
+      <span class="size-label">Size</span>
+      <div class="size-values" id="sizeOptions">
+        <!-- Sizes are dynamically populated from data.sizes_available -->
+      </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <!-- Optional sections - hidden by default, shown when data exists -->
+    <div class="opt-section" id="descSection">
+      <h3>About</h3>
+      <p id="descText"></p>
+    </div>
+
+    <div class="opt-section" id="storySection">
+      <h3>Story</h3>
+      <p id="storyText"></p>
+    </div>
+
+    <div class="opt-section" id="sustainSection">
+      <h3>Sustainability</h3>
+      <p id="sustainText"></p>
+    </div>
+
+    <div class="opt-section" id="materialSection">
+      <h3>Material</h3>
+      <p id="materialText"></p>
+    </div>
+
+    <div class="opt-section" id="careSection">
+      <h3>Care</h3>
+      <p id="careText"></p>
+    </div>
+
+    <div class="opt-section" id="extraSection1">
+      <h3 id="extra1Label">Extra</h3>
+      <p id="extra1Text"></p>
+    </div>
+
+    <div class="opt-section" id="extraSection2">
+      <h3 id="extra2Label">Extra</h3>
+      <p id="extra2Text"></p>
+    </div>
+
+    <a class="shop-link" id="shopLink" href="#" target="_blank">
+      Shop This Product →
+    </a>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <div class="bottom-inner">
+    <div id="captcha-box"></div>
+    <button class="verify-btn" id="verifyBtn" disabled>Security Check...</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-backdrop" onclick="closeResult()"></div>
+  <div class="result-card">
+    <div class="result-dot" id="resultIcon"></div>
+    <h2 class="result-title" id="resultTitle"></h2>
+    <p class="result-msg" id="resultMsg"></p>
+    <div class="result-details" id="resultDetails"></div>
+    <button class="result-close" onclick="closeResult()">Close</button>
+  </div>
+</div>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- SHARED LOGIC -->
+<script src="shared.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════
+// TEMPLATE-3-MINIMAL — Custom overrides
+// ═══════════════════════════════════════════════
+
+function showResultOverlay(type, code, data) {
+  const o = document.getElementById('resultOverlay');
+  const ic = document.getElementById('resultIcon');
+  const t = document.getElementById('resultTitle');
+  const m = document.getElementById('resultMsg');
+  const det = document.getElementById('resultDetails');
+  ic.className = 'result-dot ' + type; det.innerHTML = '';
+  if (type === 'success') {
+    ic.textContent = '✓'; t.textContent = 'Authentic Product';
+    m.textContent = 'This product has been verified as genuine.';
+    if (data) {
+      let r = '';
+      if (data.product_name) r += `<div class="result-row"><span class="result-key">Product</span><span class="result-val">${data.product_name}</span></div>`;
+      if (data.product_size) r += `<div class="result-row"><span class="result-key">Size</span><span class="result-val">${data.product_size}</span></div>`;
+      if (data.production_date) r += `<div class="result-row"><span class="result-key">Produced</span><span class="result-val">${data.production_date}</span></div>`;
+      if (data.claim_status) r += `<div class="result-row"><span class="result-key">Status</span><span class="result-val">${data.claim_status}</span></div>`;
+      det.innerHTML = r;
+    }
+  } else {
+    ic.textContent = '✕';
+    const msgs = {
+      missing_params: ['No Tag Data', 'No NFC data found. Please scan the chip again.'],
+      replay: ['Already Scanned', 'This code was already used. Scan the chip again.'],
+      fake: ['Not Verified', 'This product could not be verified as authentic.'],
+      captcha: ['Security Failed', 'Security check failed. Please reload and try again.'],
+      server_error: ['Offline', 'Could not reach the server. Check your connection.'],
+    };
+    const x = msgs[code] || msgs.fake;
+    t.textContent = x[0]; m.textContent = x[1];
+  }
+  o.classList.add('visible');
+}
+</script>
+</body>
+</html>
