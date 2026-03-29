@@ -193,41 +193,63 @@
 
 <script>
 /**
- * ROUTER / DISPATCHER
+ * ROUTER / DISPATCHER  (v2 – Session-Token Support)
  *
- * Flow:
- * 1. No NFC params → show landing page
- * 2. NFC params present → call Product-Data Lambda → redirect to correct template
- * 3. Direct template links still work: /templates/template-1-bold.html?uid=...
+ * NEUER FLOW (Redirect Lambda leitet direkt zu /product/pX.html weiter):
+ *   - Wenn pid= oder did= oder token= vorhanden → direkt zu Default-Template
+ *   - Der Redirect Lambda hat bereits das richtige Template in der URL gesetzt
+ *
+ * LEGACY FLOW (alter uid-basierter Flow):
+ *   - Wenn uid/enc vorhanden → Lambda aufrufen fuer Template-Routing
+ *
+ * KEIN PARAM → Landing Page anzeigen
  */
 
-const PRODUCT_DATA_LAMBDA = 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page';
+const PRODUCT_DATA_LAMBDA = 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/get-product';
 const DEFAULT_TEMPLATE_FILE = 'p1.html';
 const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2.html','template-3-minimal.html':'p3.html'};
 
 (async function route() {
     const params = new URLSearchParams(window.location.search);
+    const pid = params.get('pid');
+    const did = params.get('did');
+    const token = params.get('token');
     const uid = params.get('uid');
     const ctr = params.get('ctr');
     const cmac = params.get('cmac');
     const enc = params.get('e') || params.get('enc');
     const bid = params.get('bid');
 
-    // ── No NFC params → Landing Page ──
-    if (!uid && !ctr && !cmac && !enc) {
+    // ── Keine Parameter → Landing Page ──
+    if (!pid && !did && !token && !uid && !ctr && !cmac && !enc) {
         document.getElementById('landing').classList.add('active');
         return;
     }
 
-    // ── NFC params present → Loading + Route to Template ──
+    // ── NEUER FLOW: pid/did/token vorhanden ──
+    // Der Redirect Lambda leitet normalerweise direkt zu /product/pX.html,
+    // aber falls jemand auf index.html?pid=... landet, leiten wir weiter.
+    if (pid || did || token) {
+        document.getElementById('loader').classList.add('active');
+        // Weiterleitung zu Default-Template mit allen Params
+        window.location.replace(`./product/${DEFAULT_TEMPLATE_FILE}${window.location.search}`);
+        return;
+    }
+
+    // ── LEGACY FLOW: uid/enc → Lambda fuer Template-Routing ──
     document.getElementById('loader').classList.add('active');
 
     let templateFile = null;
 
     try {
-        const res = await fetch(`${PRODUCT_DATA_LAMBDA}?uid=${encodeURIComponent(uid || '')}&ctr=${encodeURIComponent(ctr || '')}&cmac=${encodeURIComponent(cmac || '')}${enc ? '&enc=' + encodeURIComponent(enc) : ''}${bid ? '&bid=' + encodeURIComponent(bid) : ''}`);
+        let lambdaUrl = `${PRODUCT_DATA_LAMBDA}?`;
+        if (uid) lambdaUrl += `uid=${encodeURIComponent(uid)}&`;
+        if (enc) lambdaUrl += `enc=${encodeURIComponent(enc)}&`;
+        if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
+        lambdaUrl = lambdaUrl.replace(/&$/, '');
 
-        // Helper: unwrap double-JSON from API Gateway if needed
+        const res = await fetch(lambdaUrl);
+
         function unwrap(raw) {
             if (raw && typeof raw.body === 'string' && raw.statusCode) {
                 try { return JSON.parse(raw.body); } catch(e) { return raw; }
@@ -236,15 +258,11 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
         }
 
         if (res.ok) {
-            const rawResult = await res.json();
-            const result = unwrap(rawResult);
-            // Lambda returns template_file (e.g. "p1.html")
+            const result = unwrap(await res.json());
             templateFile = result.template_file || DEFAULT_TEMPLATE_FILE;
         } else {
-            // Even on 404, Lambda may return a template_file
             try {
-                const rawErr = await res.json();
-                const errResult = unwrap(rawErr);
+                const errResult = unwrap(await res.json());
                 templateFile = errResult.template_file || DEFAULT_TEMPLATE_FILE;
             } catch(e2) {
                 templateFile = DEFAULT_TEMPLATE_FILE;
@@ -255,16 +273,11 @@ const LEGACY_MAP = {'template-1-bold.html':'p1.html','template-2-clean.html':'p2
     }
 
     if (!templateFile) templateFile = DEFAULT_TEMPLATE_FILE;
-
-    // Legacy-Dateinamen auf neue neutrale Namen mappen
     if (LEGACY_MAP[templateFile]) templateFile = LEGACY_MAP[templateFile];
-
-    // Sicherheit: Dateiname darf nur Buchstaben, Zahlen, Bindestriche und .html enthalten
     if (!/^[a-zA-Z0-9_-]+\.html$/.test(templateFile)) {
         templateFile = DEFAULT_TEMPLATE_FILE;
     }
 
-    // Redirect to template, keeping all URL params
     window.location.replace(`./product/${templateFile}${window.location.search}`);
 })();
 </script>

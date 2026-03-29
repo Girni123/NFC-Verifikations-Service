@@ -25,7 +25,7 @@
 const CONFIG = {
   CF_SITE_KEY: '0x4AAAAAACwaUtYu34lDvzDL',              // Cloudflare Turnstile site key
   VERIFICATION_LAMBDA: 'https://cgh2mb4wta.execute-api.eu-north-1.amazonaws.com/verification',
-  PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page',
+  PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/get-product',
   TOKEN_TTL: 4 * 60 * 1000,  // 4 minutes
 };
 
@@ -34,13 +34,44 @@ let tokenTimestamp = null;
 let isLoading = false;
 let productDataLoaded = false;  // true wenn Produktdaten erfolgreich geladen
 
+// ── Session-Token: wird aus URL gelesen und in Memory gehalten ──
+// Der Token wird sofort aus der URL entfernt (history.replaceState),
+// damit er beim Teilen des Links NICHT mitgesendet wird.
+let sessionToken = null;
+
 // ═══════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Token aus URL extrahieren und aus URL entfernen
+  extractAndRemoveToken();
   initCaptcha();
   loadProductData();
 });
+
+/**
+ * Extrahiert den Session-Token aus der URL, speichert ihn in Memory,
+ * und entfernt ihn sofort aus der URL-Leiste.
+ * → Wenn jemand den Link kopiert/teilt, ist der Token NICHT enthalten.
+ */
+function extractAndRemoveToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (token) {
+    sessionToken = token;
+    console.log('[TOKEN] Session-Token aus URL extrahiert:', token.substring(0, 12) + '...');
+
+    // Token aus URL entfernen (bleibt nur in Memory)
+    params.delete('token');
+    const remaining = params.toString();
+    const newUrl = remaining
+      ? `${window.location.pathname}?${remaining}`
+      : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+    console.log('[TOKEN] Token aus URL entfernt, neue URL:', newUrl);
+  }
+}
 
 // ═══════════════════════════════════════════════
 // CLOUDFLARE TURNSTILE
@@ -134,6 +165,36 @@ async function verify() {
   isLoading = true;
   updateButton('loading');
 
+  // ── SESSION-TOKEN basierte Verifikation (bevorzugt) ──
+  // Wenn sessionToken vorhanden: nur Token + Cloudflare-Token senden
+  // Wenn nicht: Legacy-Flow mit uid/ctr/cmac aus URL
+  if (sessionToken) {
+    console.log('[VERIFY] Session-Token Modus:', sessionToken.substring(0, 12) + '...');
+    try {
+      const url = `${CONFIG.VERIFICATION_LAMBDA}?token=${encodeURIComponent(sessionToken)}&cf_token=${encodeURIComponent(cfToken)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (res.ok && data.verified === true) {
+        updateButton('success');
+        showResult('success', 'verified', data);
+      } else {
+        let errType = 'fake';
+        if (data.error_code === 'CAPTCHA_INVALID' || data.error_code === 'CAPTCHA_MISSING') errType = 'captcha';
+        else if (data.error_code === 'REPLAY_DETECTED') errType = 'replay';
+        else if (data.error_code === 'SESSION_NOT_FOUND' || data.error_code === 'SESSION_EXPIRED') errType = 'expired';
+        updateButton('error');
+        showResult('error', errType, data);
+      }
+    } catch (e) {
+      updateButton('error', '✕ Connection Error');
+      showResult('error', 'server_error');
+    }
+    isLoading = false;
+    return;
+  }
+
+  // ── LEGACY: uid/ctr/cmac aus URL ──
   const params = new URLSearchParams(window.location.search);
   const uid = params.get('uid');
   const ctr = params.get('ctr');
@@ -201,20 +262,25 @@ function closeResult() {
 // ═══════════════════════════════════════════════
 async function loadProductData() {
   const params = new URLSearchParams(window.location.search);
-  const uid = params.get('uid');
-  const enc = params.get('e') || params.get('enc');  // Chip sendet "e=", Fallback auf "enc="
-  const bid = params.get('bid');
-  const ctr = params.get('ctr');
-  const cmac = params.get('cmac');
 
-  // ── DEBUG: Alle URL-Parameter loggen ──
+  // ── NEUE PARAMETER (vom Redirect Lambda gesetzt) ──
+  const pid = params.get('pid');   // Product ID
+  const did = params.get('did');   // Display ID (individueller Chip)
+
+  // ── LEGACY PARAMETER (alter Flow, abwaertskompatibel) ──
+  const uid = params.get('uid');
+  const enc = params.get('e') || params.get('enc');
+  const bid = params.get('bid');
+
+  // ── DEBUG: Alle Parameter loggen ──
   console.group('%c[ProductPage] DEBUG', 'color: #CDFF00; background: #111; padding: 2px 6px; border-radius: 3px;');
   console.log('URL:', window.location.href);
-  console.log('Parameter:', { uid, enc: enc ? enc.substring(0, 16) + '...' : null, bid, ctr, cmac });
+  console.log('Session Token:', sessionToken ? sessionToken.substring(0, 12) + '...' : 'null');
+  console.log('Parameter:', { pid, did, uid, enc: enc ? enc.substring(0, 16) + '...' : null, bid });
 
-  // Kein uid UND kein enc → kein NFC-Scan, Preview-Modus
-  if (!uid && !enc) {
-    console.log('Kein uid/enc → Preview-Modus');
+  // Kein pid, did, uid ODER enc → Preview-Modus
+  if (!pid && !did && !uid && !enc) {
+    console.log('Keine Daten-Parameter → Preview-Modus');
     console.groupEnd();
     return;
   }
@@ -223,12 +289,19 @@ async function loadProductData() {
   hideAllPlaceholders();
 
   try {
-    // Call product-data Lambda — uid und/oder enc mitgeben
+    // ── Lambda-URL bauen: pid/did bevorzugt, uid/enc als Legacy ──
     let lambdaUrl = `${CONFIG.PRODUCT_DATA_LAMBDA}?`;
-    if (uid) lambdaUrl += `uid=${encodeURIComponent(uid)}&`;
-    if (enc) lambdaUrl += `enc=${encodeURIComponent(enc)}&`;
-    if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
-    lambdaUrl = lambdaUrl.replace(/&$/, '');
+    if (pid) {
+      lambdaUrl += `pid=${encodeURIComponent(pid)}`;
+    } else if (did) {
+      lambdaUrl += `did=${encodeURIComponent(did)}`;
+    } else {
+      // Legacy: uid/enc/bid
+      if (uid) lambdaUrl += `uid=${encodeURIComponent(uid)}&`;
+      if (enc) lambdaUrl += `enc=${encodeURIComponent(enc)}&`;
+      if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
+      lambdaUrl = lambdaUrl.replace(/&$/, '');
+    }
 
     console.log('Lambda Request:', lambdaUrl);
     const t0 = performance.now();
