@@ -593,7 +593,16 @@ function applyGenericProductData(data) {
 
   // ── CORE OPTIONAL FIELDS ──
   setText('productCategory', data.product_category);
-  setImage('heroImage', data.hero_image_url);
+
+  // Hero image: set src and fade in when loaded
+  if (data.hero_image_url) {
+    const heroEl = document.getElementById('heroImage');
+    if (heroEl) {
+      heroEl.onload = () => { heroEl.style.opacity = '1'; };
+      heroEl.src = data.hero_image_url;
+    }
+  }
+
   setText('heroBadge', data.hero_badge_text);
   setText('heroLabel', data.hero_badge_text);
 
@@ -644,7 +653,7 @@ function applyGenericProductData(data) {
     hideSection('storySection');
   }
 
-  // Shop link (visible for ALL templates including minimal)
+  // ── SHOP LINK (configurable text + icon) ──
   if (data.shop_url) {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
@@ -652,12 +661,37 @@ function applyGenericProductData(data) {
       shopEl.classList.remove('hidden');
       shopEl.classList.add('visible');
       shopEl.style.display = '';
+
+      // Configurable text
+      if (data.shop_text) {
+        const shopTextEl = document.getElementById('shopText');
+        if (shopTextEl) shopTextEl.textContent = data.shop_text;
+      }
+
+      // Configurable icon (emoji or short text; if empty, keep default SVG)
+      if (data.shop_icon) {
+        const shopIconEl = document.getElementById('shopIcon');
+        if (shopIconEl) shopIconEl.innerHTML = data.shop_icon;
+      }
     }
   } else {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
       shopEl.classList.add('hidden');
       shopEl.style.display = 'none';
+    }
+  }
+
+  // ── TOP LINK (optional — shown at top-right of hero) ──
+  if (data.top_link_url) {
+    const topLink = document.getElementById('topLink');
+    if (topLink) {
+      topLink.href = data.top_link_url;
+      topLink.style.display = '';
+      if (data.top_link_text) {
+        const topText = document.getElementById('topLinkText');
+        if (topText) topText.textContent = data.top_link_text;
+      }
     }
   }
 
@@ -778,20 +812,22 @@ function applyGenericProductData(data) {
     });
   }
 
-  // ── GALLERY IMAGES ──
+  // ── GALLERY IMAGES (clickable → lightbox) ──
   if (data.gallery_images && data.gallery_images.length > 0) {
     const gallery = document.getElementById('gallery');
     const gallerySection = document.getElementById('gallerySection');
     if (gallery) {
-      gallery.innerHTML = data.gallery_images.map(url =>
-        `<img class="gallery-img" src="${url}" alt="Product detail" loading="lazy">`
+      gallery.innerHTML = data.gallery_images.map((url, i) =>
+        `<img class="gallery-img" src="${url}" alt="Product detail" loading="lazy" onclick="openLightbox(${i})">`
       ).join('');
+      // Store gallery URLs globally for lightbox navigation
+      window.__galleryImages = data.gallery_images;
     }
-    // For template-2-clean gallery cells
+    // For template-2-clean gallery cells (clickable → lightbox)
     const galleryRow = document.querySelector('.gallery-row');
     if (galleryRow) {
-      galleryRow.innerHTML = data.gallery_images.slice(0, 3).map(url =>
-        `<div class="gallery-cell"><img src="${url}" alt="Product detail" loading="lazy"></div>`
+      galleryRow.innerHTML = data.gallery_images.slice(0, 3).map((url, i) =>
+        `<div class="gallery-cell"><img src="${url}" alt="Product detail" loading="lazy" onclick="openLightbox(${i})"></div>`
       ).join('');
     }
     if (gallerySection) showSection('gallerySection');
@@ -811,6 +847,62 @@ function applyGenericProductData(data) {
     hideSection('infoGrid');
   }
 }
+
+// ═══════════════════════════════════════════════
+// LIGHTBOX (Fullscreen Gallery Viewer)
+// ═══════════════════════════════════════════════
+let __lightboxIndex = 0;
+
+function openLightbox(index) {
+  const images = window.__galleryImages;
+  if (!images || !images.length) return;
+
+  __lightboxIndex = index;
+  const overlay = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  const counter = document.getElementById('lbCounter');
+  if (!overlay || !img) return;
+
+  img.src = images[index];
+  if (counter) counter.textContent = `${index + 1} / ${images.length}`;
+
+  // Hide nav arrows if only one image
+  const prevBtn = document.getElementById('lbPrev');
+  const nextBtn = document.getElementById('lbNext');
+  if (prevBtn) prevBtn.style.display = images.length > 1 ? '' : 'none';
+  if (nextBtn) nextBtn.style.display = images.length > 1 ? '' : 'none';
+
+  overlay.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e) {
+  if (e) e.stopPropagation();
+  const overlay = document.getElementById('lightbox');
+  if (overlay) overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+function lightboxNav(dir, e) {
+  if (e) e.stopPropagation();
+  const images = window.__galleryImages;
+  if (!images || !images.length) return;
+
+  __lightboxIndex = (__lightboxIndex + dir + images.length) % images.length;
+  const img = document.getElementById('lightboxImg');
+  const counter = document.getElementById('lbCounter');
+  if (img) img.src = images[__lightboxIndex];
+  if (counter) counter.textContent = `${__lightboxIndex + 1} / ${images.length}`;
+}
+
+// Keyboard navigation for lightbox
+document.addEventListener('keydown', (e) => {
+  const overlay = document.getElementById('lightbox');
+  if (!overlay || !overlay.classList.contains('visible')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lightboxNav(-1);
+  if (e.key === 'ArrowRight') lightboxNav(1);
+});
 
 // ═══════════════════════════════════════════════
 // UTILITY

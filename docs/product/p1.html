@@ -471,17 +471,121 @@
   .delay-3 { animation-delay: 0.3s; }
   .delay-4 { animation-delay: 0.4s; }
   .delay-5 { animation-delay: 0.5s; }
+
+  /* ── TOP LINK ── */
+  .top-link {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .top-link:active { border-color: var(--accent); background: rgba(0,0,0,0.8); }
+
+  /* ── GALLERY CLICKABLE ── */
+  .gallery-img { cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
+  .gallery-img:active { transform: scale(0.97); border-color: var(--accent); }
+
+  /* ── LIGHTBOX ── */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .lightbox-overlay.visible { opacity: 1; pointer-events: auto; }
+  .lightbox-img {
+    max-width: 92vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 8px;
+    user-select: none;
+    transition: opacity 0.2s ease;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top));
+    right: 16px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 32px;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    z-index: 301;
+  }
+  .lightbox-close:hover { opacity: 1; }
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 301;
+    opacity: 0.7;
+  }
+  .lightbox-nav:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+  .lightbox-prev { left: 12px; }
+  .lightbox-next { right: 12px; }
+  .lightbox-counter {
+    position: absolute;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
 
 <div class="page">
+  <!-- TOP LINK (optional, shown when data.top_link_url is set) -->
+  <a class="top-link" id="topLink" href="#" target="_blank" style="display:none">
+    <span id="topLinkText">Shop</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+  </a>
+
   <!-- HERO -->
   <div class="hero">
-    <img class="hero-img" id="heroImage" src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=1000&fit=crop" alt="Product">
+    <img class="hero-img" id="heroImage" src="" alt="Product" style="opacity:0;transition:opacity 0.3s ease">
     <div class="hero-overlay"></div>
     <div class="hero-badge" id="heroBadge">NFC Verified</div>
-    <div class="hero-nav">
+    <div class="hero-nav" id="heroNav" style="display:none">
       <div class="nav-dot active"></div>
       <div class="nav-dot"></div>
       <div class="nav-dot"></div>
@@ -492,14 +596,14 @@
   <div class="content">
     <!-- Product Header -->
     <div class="product-header animate-in delay-1">
-      <span class="product-brand" id="brandName">Premium Collection</span>
-      <h1 class="product-name" id="productName">Classic Leather Jacket</h1>
+      <span class="product-brand" id="brandName"></span>
+      <h1 class="product-name" id="productName"></h1>
       <div class="product-meta">
         <span class="meta-tag">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           Size
         </span>
-        <span class="size-pill" id="productSize">M</span>
+        <span class="size-pill" id="productSize"></span>
       </div>
     </div>
 
@@ -508,26 +612,26 @@
     <!-- Description -->
     <div class="section animate-in delay-2" id="descSection">
       <span class="section-label">About This Piece</span>
-      <p class="section-text" id="productDesc">Handcrafted from premium full-grain leather, this jacket represents the pinnacle of modern craftsmanship. Each piece is individually numbered and verified through our NFC authentication system.</p>
+      <p class="section-text" id="productDesc"></p>
     </div>
 
     <!-- Info Cards (labels + values both editable) -->
     <div class="info-grid animate-in delay-3" id="infoGrid">
       <div class="info-card" id="infoCard1">
-        <span class="info-card-label" id="infoLabel1">Material</span>
-        <span class="info-card-value" id="infoVal1">Full-Grain Leather</span>
+        <span class="info-card-label" id="infoLabel1"></span>
+        <span class="info-card-value" id="infoVal1"></span>
       </div>
       <div class="info-card" id="infoCard2">
-        <span class="info-card-label" id="infoLabel2">Origin</span>
-        <span class="info-card-value" id="infoVal2">Italy</span>
+        <span class="info-card-label" id="infoLabel2"></span>
+        <span class="info-card-value" id="infoVal2"></span>
       </div>
       <div class="info-card" id="infoCard3">
-        <span class="info-card-label" id="infoLabel3">Collection</span>
-        <span class="info-card-value" id="infoVal3">FW 2025</span>
+        <span class="info-card-label" id="infoLabel3"></span>
+        <span class="info-card-value" id="infoVal3"></span>
       </div>
       <div class="info-card" id="infoCard4">
-        <span class="info-card-label" id="infoLabel4">Edition</span>
-        <span class="info-card-value" id="infoVal4">Limited</span>
+        <span class="info-card-label" id="infoLabel4"></span>
+        <span class="info-card-value" id="infoVal4"></span>
       </div>
     </div>
 
@@ -536,16 +640,16 @@
     <!-- Story Section -->
     <div class="section animate-in delay-4" id="storySection">
       <span class="section-label">The Story</span>
-      <p class="section-text" id="storyText">Born from a commitment to sustainability and artisan tradition, every piece in our collection carries a story of ethical production, fair wages, and environmental responsibility.</p>
+      <p class="section-text" id="storyText"></p>
     </div>
 
     <!-- Detail List -->
     <div class="section animate-in delay-4" id="detailSection">
       <span class="section-label">Details</span>
       <div class="detail-list" id="detailList">
-        <div class="detail-item"><span class="detail-key">Production</span><span class="detail-val" id="detailProd">Handmade</span></div>
-        <div class="detail-item"><span class="detail-key">Sustainability</span><span class="detail-val" id="detailSust">Eco-Certified</span></div>
-        <div class="detail-item"><span class="detail-key">Care</span><span class="detail-val" id="detailCare">Professional Clean</span></div>
+        <div class="detail-item"><span class="detail-key">Production</span><span class="detail-val" id="detailProd"></span></div>
+        <div class="detail-item"><span class="detail-key">Sustainability</span><span class="detail-val" id="detailSust"></span></div>
+        <div class="detail-item"><span class="detail-key">Care</span><span class="detail-val" id="detailCare"></span></div>
       </div>
     </div>
 
@@ -557,10 +661,10 @@
       </div>
     </div>
 
-    <!-- Shop Link -->
-    <a class="shop-link animate-in delay-5" id="shopLink" href="#" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      Shop This Product
+    <!-- Shop Link (text+icon configurable via data.shop_text / data.shop_icon) -->
+    <a class="shop-link animate-in delay-5" id="shopLink" href="#" target="_blank" style="display:none">
+      <span id="shopIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></span>
+      <span id="shopText">Shop This Product</span>
     </a>
   </div>
 
@@ -573,6 +677,15 @@
       </button>
     </div>
   </div>
+</div>
+
+<!-- LIGHTBOX OVERLAY (for gallery fullscreen) -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lbPrev" onclick="lightboxNav(-1, event)">&#8249;</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lbNext" onclick="lightboxNav(1, event)">&#8250;</button>
+  <div class="lightbox-counter" id="lbCounter"></div>
 </div>
 
 <!-- RESULT OVERLAY -->
