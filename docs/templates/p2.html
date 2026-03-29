@@ -487,6 +487,42 @@
   .d4 { animation-delay: 0.2s; }
   .d5 { animation-delay: 0.25s; }
   .d6 { animation-delay: 0.3s; }
+
+  /* ── GALLERY CLICKABLE ── */
+  .gallery-cell img { cursor: pointer; transition: transform 0.2s; }
+  .gallery-cell img:active { transform: scale(0.97); }
+
+  /* ── LIGHTBOX ── */
+  .lightbox-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.95);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+  }
+  .lightbox-overlay.visible { opacity: 1; pointer-events: auto; }
+  .lightbox-img { max-width: 92vw; max-height: 85vh; object-fit: contain; border-radius: 8px; }
+  .lightbox-close {
+    position: absolute; top: max(16px, env(safe-area-inset-top)); right: 16px;
+    background: none; border: none; color: #fff; font-size: 32px;
+    cursor: pointer; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center; opacity: 0.7; z-index: 301;
+  }
+  .lightbox-close:hover { opacity: 1; }
+  .lightbox-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.1); border: none; color: #fff;
+    font-size: 28px; width: 44px; height: 44px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    z-index: 301; opacity: 0.7;
+  }
+  .lightbox-nav:hover { opacity: 1; background: rgba(255,255,255,0.2); }
+  .lightbox-prev { left: 12px; }
+  .lightbox-next { right: 12px; }
+  .lightbox-counter {
+    position: absolute; bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -494,20 +530,20 @@
 <div class="page">
   <!-- TOP BAR -->
   <div class="topbar">
-    <span class="topbar-brand" id="brandName">Maison Élan</span>
+    <span class="topbar-brand" id="brandName"></span>
     <span class="topbar-tag">NFC Verified</span>
   </div>
 
   <!-- HERO IMAGE -->
   <div class="hero-card anim d1">
-    <img id="heroImage" src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&h=1000&fit=crop" alt="Product">
+    <img id="heroImage" src="" alt="Product" style="opacity:0;transition:opacity 0.3s ease">
     <span class="hero-label" id="heroLabel">Authentic</span>
   </div>
 
   <!-- PRODUCT INFO -->
   <div class="product-block anim d2">
-    <span class="product-eyebrow" id="productCategory">Premium Outerwear</span>
-    <h1 class="product-title" id="productName">Wool Blend Overcoat</h1>
+    <span class="product-eyebrow" id="productCategory"></span>
+    <h1 class="product-title" id="productName"></h1>
     <div class="product-size-row" id="sizeRow">
       <span class="size-label">Size</span>
       <div class="size-options" id="sizeOptions">
@@ -523,7 +559,7 @@
       <div class="section-header">
         <span class="section-title">Description</span>
       </div>
-      <p class="section-text" id="descText">A timeless overcoat crafted from premium Italian wool blend. The relaxed silhouette features a structured shoulder, hidden button placket, and fully lined interior for exceptional comfort and warmth.</p>
+      <p class="section-text" id="descText"></p>
     </div>
 
     <!-- Sustainability -->
@@ -532,27 +568,7 @@
         <span class="section-title">Sustainability</span>
       </div>
       <div class="feature-list" id="featureList">
-        <div class="feature-item">
-          <div class="feature-icon">♻</div>
-          <div class="feature-content">
-            <div class="feature-label" id="feat1Label">Eco Materials</div>
-            <div class="feature-desc" id="feat1Desc">Responsibly sourced wool from certified farms</div>
-          </div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">🌍</div>
-          <div class="feature-content">
-            <div class="feature-label" id="feat2Label">Fair Production</div>
-            <div class="feature-desc" id="feat2Desc">Manufactured in GOTS-certified facilities</div>
-          </div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">📦</div>
-          <div class="feature-content">
-            <div class="feature-label" id="feat3Label">Minimal Packaging</div>
-            <div class="feature-desc" id="feat3Desc">100% recyclable and plastic-free packaging</div>
-          </div>
-        </div>
+        <!-- Sustainability features are dynamically populated from data.sustainability_features -->
       </div>
     </div>
 
@@ -561,7 +577,7 @@
       <div class="section-header">
         <span class="section-title">The Story</span>
       </div>
-      <p class="section-text" id="storyText">Every garment tells a story. From the rolling hills of Tuscany where our wool is sourced, to the skilled hands of our master tailors — this piece carries a heritage of craftsmanship spanning three generations.</p>
+      <p class="section-text" id="storyText"></p>
     </div>
 
     <!-- Specs -->
@@ -570,10 +586,10 @@
         <span class="section-title">Specifications</span>
       </div>
       <div class="specs-grid" id="specsGrid">
-        <div class="spec-cell" id="specCell1"><span class="spec-key" id="specKey1">Material</span><span class="spec-val" id="specVal1">80% Wool, 20% Cashmere</span></div>
-        <div class="spec-cell" id="specCell2"><span class="spec-key" id="specKey2">Origin</span><span class="spec-val" id="specVal2">Italy</span></div>
-        <div class="spec-cell" id="specCell3"><span class="spec-key" id="specKey3">Weight</span><span class="spec-val" id="specVal3">450 g/m²</span></div>
-        <div class="spec-cell" id="specCell4"><span class="spec-key" id="specKey4">Care</span><span class="spec-val" id="specVal4">Dry Clean</span></div>
+        <div class="spec-cell" id="specCell1"><span class="spec-key" id="specKey1"></span><span class="spec-val" id="specVal1"></span></div>
+        <div class="spec-cell" id="specCell2"><span class="spec-key" id="specKey2"></span><span class="spec-val" id="specVal2"></span></div>
+        <div class="spec-cell" id="specCell3"><span class="spec-key" id="specKey3"></span><span class="spec-val" id="specVal3"></span></div>
+        <div class="spec-cell" id="specCell4"><span class="spec-key" id="specKey4"></span><span class="spec-val" id="specVal4"></span></div>
       </div>
     </div>
 
@@ -582,7 +598,7 @@
       <div class="section-header">
         <span class="section-title">Production</span>
       </div>
-      <p class="section-text" id="extraText">Produced in limited quantities to ensure the highest standards of quality. Each piece undergoes rigorous quality control, including hand-inspection of every seam and finish before receiving its unique NFC authentication chip.</p>
+      <p class="section-text" id="extraText"></p>
     </div>
   </div>
 
@@ -591,10 +607,10 @@
     <!-- Gallery cells are dynamically populated from data.gallery_images -->
   </div>
 
-  <!-- SHOP LINK -->
-  <a class="shop-btn anim d6" id="shopLink" href="#" target="_blank">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-    Shop This Product
+  <!-- SHOP LINK (configurable via data.shop_text / data.shop_icon) -->
+  <a class="shop-btn anim d6" id="shopLink" href="#" target="_blank" style="display:none">
+    <span id="shopIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+    <span id="shopText">Shop This Product</span>
   </a>
 </div>
 
@@ -604,6 +620,15 @@
     <div id="captcha-box"></div>
     <button class="verify-btn" id="verifyBtn" disabled>Security Check...</button>
   </div>
+</div>
+
+<!-- LIGHTBOX OVERLAY -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lbPrev" onclick="lightboxNav(-1, event)">&#8249;</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lbNext" onclick="lightboxNav(1, event)">&#8250;</button>
+  <div class="lightbox-counter" id="lbCounter"></div>
 </div>
 
 <!-- RESULT OVERLAY -->

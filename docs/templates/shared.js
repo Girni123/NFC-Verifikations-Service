@@ -25,7 +25,7 @@
 const CONFIG = {
   CF_SITE_KEY: '0x4AAAAAACwaUtYu34lDvzDL',              // Cloudflare Turnstile site key
   VERIFICATION_LAMBDA: 'https://cgh2mb4wta.execute-api.eu-north-1.amazonaws.com/verification',
-  PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/product-page',
+  PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/get-product',
   TOKEN_TTL: 4 * 60 * 1000,  // 4 minutes
 };
 
@@ -34,13 +34,44 @@ let tokenTimestamp = null;
 let isLoading = false;
 let productDataLoaded = false;  // true wenn Produktdaten erfolgreich geladen
 
+// ── Session-Token: wird aus URL gelesen und in Memory gehalten ──
+// Der Token wird sofort aus der URL entfernt (history.replaceState),
+// damit er beim Teilen des Links NICHT mitgesendet wird.
+let sessionToken = null;
+
 // ═══════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Token aus URL extrahieren und aus URL entfernen
+  extractAndRemoveToken();
   initCaptcha();
   loadProductData();
 });
+
+/**
+ * Extrahiert den Session-Token aus der URL, speichert ihn in Memory,
+ * und entfernt ihn sofort aus der URL-Leiste.
+ * → Wenn jemand den Link kopiert/teilt, ist der Token NICHT enthalten.
+ */
+function extractAndRemoveToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (token) {
+    sessionToken = token;
+    console.log('[TOKEN] Session-Token aus URL extrahiert:', token.substring(0, 12) + '...');
+
+    // Token aus URL entfernen (bleibt nur in Memory)
+    params.delete('token');
+    const remaining = params.toString();
+    const newUrl = remaining
+      ? `${window.location.pathname}?${remaining}`
+      : window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+    console.log('[TOKEN] Token aus URL entfernt, neue URL:', newUrl);
+  }
+}
 
 // ═══════════════════════════════════════════════
 // CLOUDFLARE TURNSTILE
@@ -134,6 +165,36 @@ async function verify() {
   isLoading = true;
   updateButton('loading');
 
+  // ── SESSION-TOKEN basierte Verifikation (bevorzugt) ──
+  // Wenn sessionToken vorhanden: nur Token + Cloudflare-Token senden
+  // Wenn nicht: Legacy-Flow mit uid/ctr/cmac aus URL
+  if (sessionToken) {
+    console.log('[VERIFY] Session-Token Modus:', sessionToken.substring(0, 12) + '...');
+    try {
+      const url = `${CONFIG.VERIFICATION_LAMBDA}?token=${encodeURIComponent(sessionToken)}&cf_token=${encodeURIComponent(cfToken)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (res.ok && data.verified === true) {
+        updateButton('success');
+        showResult('success', 'verified', data);
+      } else {
+        let errType = 'fake';
+        if (data.error_code === 'CAPTCHA_INVALID' || data.error_code === 'CAPTCHA_MISSING') errType = 'captcha';
+        else if (data.error_code === 'REPLAY_DETECTED') errType = 'replay';
+        else if (data.error_code === 'SESSION_NOT_FOUND' || data.error_code === 'SESSION_EXPIRED') errType = 'expired';
+        updateButton('error');
+        showResult('error', errType, data);
+      }
+    } catch (e) {
+      updateButton('error', '✕ Connection Error');
+      showResult('error', 'server_error');
+    }
+    isLoading = false;
+    return;
+  }
+
+  // ── LEGACY: uid/ctr/cmac aus URL ──
   const params = new URLSearchParams(window.location.search);
   const uid = params.get('uid');
   const ctr = params.get('ctr');
@@ -201,20 +262,25 @@ function closeResult() {
 // ═══════════════════════════════════════════════
 async function loadProductData() {
   const params = new URLSearchParams(window.location.search);
-  const uid = params.get('uid');
-  const enc = params.get('e') || params.get('enc');  // Chip sendet "e=", Fallback auf "enc="
-  const bid = params.get('bid');
-  const ctr = params.get('ctr');
-  const cmac = params.get('cmac');
 
-  // ── DEBUG: Alle URL-Parameter loggen ──
+  // ── NEUE PARAMETER (vom Redirect Lambda gesetzt) ──
+  const pid = params.get('pid');   // Product ID
+  const did = params.get('did');   // Display ID (individueller Chip)
+
+  // ── LEGACY PARAMETER (alter Flow, abwaertskompatibel) ──
+  const uid = params.get('uid');
+  const enc = params.get('e') || params.get('enc');
+  const bid = params.get('bid');
+
+  // ── DEBUG: Alle Parameter loggen ──
   console.group('%c[ProductPage] DEBUG', 'color: #CDFF00; background: #111; padding: 2px 6px; border-radius: 3px;');
   console.log('URL:', window.location.href);
-  console.log('Parameter:', { uid, enc: enc ? enc.substring(0, 16) + '...' : null, bid, ctr, cmac });
+  console.log('Session Token:', sessionToken ? sessionToken.substring(0, 12) + '...' : 'null');
+  console.log('Parameter:', { pid, did, uid, enc: enc ? enc.substring(0, 16) + '...' : null, bid });
 
-  // Kein uid UND kein enc → kein NFC-Scan, Preview-Modus
-  if (!uid && !enc) {
-    console.log('Kein uid/enc → Preview-Modus');
+  // Kein pid, did, uid ODER enc → Preview-Modus
+  if (!pid && !did && !uid && !enc) {
+    console.log('Keine Daten-Parameter → Preview-Modus');
     console.groupEnd();
     return;
   }
@@ -223,12 +289,19 @@ async function loadProductData() {
   hideAllPlaceholders();
 
   try {
-    // Call product-data Lambda — uid und/oder enc mitgeben
+    // ── Lambda-URL bauen: pid/did bevorzugt, uid/enc als Legacy ──
     let lambdaUrl = `${CONFIG.PRODUCT_DATA_LAMBDA}?`;
-    if (uid) lambdaUrl += `uid=${encodeURIComponent(uid)}&`;
-    if (enc) lambdaUrl += `enc=${encodeURIComponent(enc)}&`;
-    if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
-    lambdaUrl = lambdaUrl.replace(/&$/, '');
+    if (pid) {
+      lambdaUrl += `pid=${encodeURIComponent(pid)}`;
+    } else if (did) {
+      lambdaUrl += `did=${encodeURIComponent(did)}`;
+    } else {
+      // Legacy: uid/enc/bid
+      if (uid) lambdaUrl += `uid=${encodeURIComponent(uid)}&`;
+      if (enc) lambdaUrl += `enc=${encodeURIComponent(enc)}&`;
+      if (bid) lambdaUrl += `bid=${encodeURIComponent(bid)}&`;
+      lambdaUrl = lambdaUrl.replace(/&$/, '');
+    }
 
     console.log('Lambda Request:', lambdaUrl);
     const t0 = performance.now();
@@ -243,15 +316,39 @@ async function loadProductData() {
     });
 
     if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
+      let errBody = await res.json().catch(() => ({}));
+      // Unwrap double-JSON if needed
+      if (errBody && typeof errBody.body === 'string' && errBody.statusCode) {
+        try { errBody = JSON.parse(errBody.body); } catch(e) { /* keep original */ }
+      }
       console.error('Lambda Error Response:', JSON.stringify(errBody, null, 2));
       console.groupEnd();
       showDataError(res.status, errBody);
       return;
     }
 
-    const response = await res.json();
-    console.log('Lambda Full Response:', JSON.stringify(response, null, 2));
+    const rawResponse = await res.json();
+    console.log('Lambda Raw Response:', JSON.stringify(rawResponse, null, 2));
+
+    // ── Handle double-wrapped API Gateway response ──
+    // API Gateway HTTP API v2 (payload format 2.0) may return the entire
+    // Lambda proxy response as JSON: { statusCode, headers, body: "..." }
+    // In that case, the actual data is inside body (as a JSON string).
+    let response = rawResponse;
+    if (rawResponse && typeof rawResponse.body === 'string' && rawResponse.statusCode) {
+      try {
+        response = JSON.parse(rawResponse.body);
+        console.log('Unwrapped double-JSON body:', JSON.stringify(response, null, 2));
+      } catch (e) {
+        console.warn('body is a string but not valid JSON:', rawResponse.body);
+      }
+      // Check if the inner statusCode indicates an error
+      if (rawResponse.statusCode >= 400) {
+        console.error('Lambda returned error status:', rawResponse.statusCode);
+        showDataError(rawResponse.statusCode, response);
+        return;
+      }
+    }
 
     const productData = response.data || response;
     console.log('Extracted productData:', JSON.stringify(productData, null, 2));
@@ -259,6 +356,9 @@ async function loadProductData() {
 
     if (!productData || (!productData.product_name && !productData.brand_name)) {
       console.warn('Keine product_name/brand_name in Antwort → Fehler anzeigen');
+      console.warn('Verfuegbare Keys in productData:', productData ? Object.keys(productData) : 'null');
+      console.warn('Verfuegbare Keys in response:', response ? Object.keys(response) : 'null');
+      console.warn('Verfuegbare Keys in rawResponse:', rawResponse ? Object.keys(rawResponse) : 'null');
       console.groupEnd();
       showDataError(0, { error_code: 'EMPTY_DATA' });
       return;
@@ -493,7 +593,16 @@ function applyGenericProductData(data) {
 
   // ── CORE OPTIONAL FIELDS ──
   setText('productCategory', data.product_category);
-  setImage('heroImage', data.hero_image_url);
+
+  // Hero image: set src and fade in when loaded
+  if (data.hero_image_url) {
+    const heroEl = document.getElementById('heroImage');
+    if (heroEl) {
+      heroEl.onload = () => { heroEl.style.opacity = '1'; };
+      heroEl.src = data.hero_image_url;
+    }
+  }
+
   setText('heroBadge', data.hero_badge_text);
   setText('heroLabel', data.hero_badge_text);
 
@@ -544,7 +653,7 @@ function applyGenericProductData(data) {
     hideSection('storySection');
   }
 
-  // Shop link (visible for ALL templates including minimal)
+  // ── SHOP LINK (configurable text + icon) ──
   if (data.shop_url) {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
@@ -552,12 +661,37 @@ function applyGenericProductData(data) {
       shopEl.classList.remove('hidden');
       shopEl.classList.add('visible');
       shopEl.style.display = '';
+
+      // Configurable text
+      if (data.shop_text) {
+        const shopTextEl = document.getElementById('shopText');
+        if (shopTextEl) shopTextEl.textContent = data.shop_text;
+      }
+
+      // Configurable icon (emoji or short text; if empty, keep default SVG)
+      if (data.shop_icon) {
+        const shopIconEl = document.getElementById('shopIcon');
+        if (shopIconEl) shopIconEl.innerHTML = data.shop_icon;
+      }
     }
   } else {
     const shopEl = document.getElementById('shopLink');
     if (shopEl) {
       shopEl.classList.add('hidden');
       shopEl.style.display = 'none';
+    }
+  }
+
+  // ── TOP LINK (optional — shown at top-right of hero) ──
+  if (data.top_link_url) {
+    const topLink = document.getElementById('topLink');
+    if (topLink) {
+      topLink.href = data.top_link_url;
+      topLink.style.display = '';
+      if (data.top_link_text) {
+        const topText = document.getElementById('topLinkText');
+        if (topText) topText.textContent = data.top_link_text;
+      }
     }
   }
 
@@ -678,20 +812,22 @@ function applyGenericProductData(data) {
     });
   }
 
-  // ── GALLERY IMAGES ──
+  // ── GALLERY IMAGES (clickable → lightbox) ──
   if (data.gallery_images && data.gallery_images.length > 0) {
     const gallery = document.getElementById('gallery');
     const gallerySection = document.getElementById('gallerySection');
     if (gallery) {
-      gallery.innerHTML = data.gallery_images.map(url =>
-        `<img class="gallery-img" src="${url}" alt="Product detail" loading="lazy">`
+      gallery.innerHTML = data.gallery_images.map((url, i) =>
+        `<img class="gallery-img" src="${url}" alt="Product detail" loading="lazy" onclick="openLightbox(${i})">`
       ).join('');
+      // Store gallery URLs globally for lightbox navigation
+      window.__galleryImages = data.gallery_images;
     }
-    // For template-2-clean gallery cells
+    // For template-2-clean gallery cells (clickable → lightbox)
     const galleryRow = document.querySelector('.gallery-row');
     if (galleryRow) {
-      galleryRow.innerHTML = data.gallery_images.slice(0, 3).map(url =>
-        `<div class="gallery-cell"><img src="${url}" alt="Product detail" loading="lazy"></div>`
+      galleryRow.innerHTML = data.gallery_images.slice(0, 3).map((url, i) =>
+        `<div class="gallery-cell"><img src="${url}" alt="Product detail" loading="lazy" onclick="openLightbox(${i})"></div>`
       ).join('');
     }
     if (gallerySection) showSection('gallerySection');
@@ -711,6 +847,62 @@ function applyGenericProductData(data) {
     hideSection('infoGrid');
   }
 }
+
+// ═══════════════════════════════════════════════
+// LIGHTBOX (Fullscreen Gallery Viewer)
+// ═══════════════════════════════════════════════
+let __lightboxIndex = 0;
+
+function openLightbox(index) {
+  const images = window.__galleryImages;
+  if (!images || !images.length) return;
+
+  __lightboxIndex = index;
+  const overlay = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  const counter = document.getElementById('lbCounter');
+  if (!overlay || !img) return;
+
+  img.src = images[index];
+  if (counter) counter.textContent = `${index + 1} / ${images.length}`;
+
+  // Hide nav arrows if only one image
+  const prevBtn = document.getElementById('lbPrev');
+  const nextBtn = document.getElementById('lbNext');
+  if (prevBtn) prevBtn.style.display = images.length > 1 ? '' : 'none';
+  if (nextBtn) nextBtn.style.display = images.length > 1 ? '' : 'none';
+
+  overlay.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e) {
+  if (e) e.stopPropagation();
+  const overlay = document.getElementById('lightbox');
+  if (overlay) overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+function lightboxNav(dir, e) {
+  if (e) e.stopPropagation();
+  const images = window.__galleryImages;
+  if (!images || !images.length) return;
+
+  __lightboxIndex = (__lightboxIndex + dir + images.length) % images.length;
+  const img = document.getElementById('lightboxImg');
+  const counter = document.getElementById('lbCounter');
+  if (img) img.src = images[__lightboxIndex];
+  if (counter) counter.textContent = `${__lightboxIndex + 1} / ${images.length}`;
+}
+
+// Keyboard navigation for lightbox
+document.addEventListener('keydown', (e) => {
+  const overlay = document.getElementById('lightbox');
+  if (!overlay || !overlay.classList.contains('visible')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lightboxNav(-1);
+  if (e.key === 'ArrowRight') lightboxNav(1);
+});
 
 // ═══════════════════════════════════════════════
 // UTILITY
