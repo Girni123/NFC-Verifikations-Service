@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════
 const CONFIG = {
   CF_SITE_KEY: '0x4AAAAAACwaUtYu34lDvzDL',              // Cloudflare Turnstile site key
-  VERIFICATION_LAMBDA: 'https://cgh2mb4wta.execute-api.eu-north-1.amazonaws.com/verification',
+  VERIFICATION_LAMBDA: 'https://verify.product-id.org/verification',
   PRODUCT_DATA_LAMBDA: 'https://9krn2xlz1a.execute-api.eu-north-1.amazonaws.com/get-product',
   TOKEN_TTL: 4 * 60 * 1000,  // 4 minutes
 };
@@ -179,12 +179,24 @@ async function verify() {
         updateButton('success');
         showResult('success', 'verified', data);
       } else {
-        let errType = 'fake';
-        if (data.error_code === 'CAPTCHA_INVALID' || data.error_code === 'CAPTCHA_MISSING') errType = 'captcha';
-        else if (data.error_code === 'REPLAY_DETECTED') errType = 'replay';
-        else if (data.error_code === 'SESSION_NOT_FOUND' || data.error_code === 'SESSION_EXPIRED') errType = 'expired';
-        updateButton('error');
-        showResult('error', errType, data);
+        var ec = data.error_code || '';
+
+        // CAPTCHA Fehler
+        if (ec === 'E-CF01' || ec === 'E-CF02' || ec === 'E-CF04') {
+          go(S.WARNING, { title: 'Sicherheits-Check fehlgeschlagen', message: 'Bitte lade die Seite neu.', hint: 'Cloudflare konnte dich nicht verifizieren.' });
+
+        // USER ERROR: Replay / Session verbraucht (Doppelklick / Reload)
+        } else if (ec === 'E-RP01' || ec === 'E-TK04') {
+          go(S.WARNING, { title: 'Code bereits verarbeitet', message: 'Dieser Scan wurde bereits genutzt.', hint: 'Bitte scanne den NFC-Chip erneut, um das Produkt nochmals zu prüfen.' });
+
+        // USER ERROR: Session abgelaufen oder nicht gefunden
+        } else if (ec === 'E-TK02' || ec === 'E-TK03') {
+          go(S.WARNING, { title: 'Sitzung abgelaufen', message: 'Der Verifizierungscode ist nicht mehr gültig.', hint: 'Halte dein Smartphone erneut an den NFC-Chip.' });
+
+        // FAKE / COUNTERFEIT: Echte Fehler (Signatur, Encryption, Chip nicht in DB)
+        } else {
+          go(S.ERROR, { title: 'Nicht verifizierbar', message: 'Dieses Produkt konnte nicht als authentisch verifiziert werden.', hint: 'Bei Fragen wende dich bitte an den Kundenservice.' });
+        }
       }
     } catch (e) {
       updateButton('error', '✕ Connection Error');
@@ -216,11 +228,24 @@ async function verify() {
       updateButton('success');
       showResult('success', 'verified', data);
     } else {
-      let errType = 'fake';
-      if (data.error_code === 'CAPTCHA_INVALID' || data.error_code === 'CAPTCHA_MISSING') errType = 'captcha';
-      else if (data.error_code === 'REPLAY_DETECTED') errType = 'replay';
-      updateButton('error');
-      showResult('error', errType, data);
+      var ec = data.error_code || '';
+
+      // CAPTCHA Fehler
+      if (ec === 'E-CF01' || ec === 'E-CF02' || ec === 'E-CF04') {
+        go(S.WARNING, { title: 'Sicherheits-Check fehlgeschlagen', message: 'Bitte lade die Seite neu.', hint: 'Cloudflare konnte dich nicht verifizieren.' });
+
+      // USER ERROR: Replay / Session verbraucht (Doppelklick / Reload)
+      } else if (ec === 'E-RP01' || ec === 'E-TK04') {
+        go(S.WARNING, { title: 'Code bereits verarbeitet', message: 'Dieser Scan wurde bereits genutzt.', hint: 'Bitte scanne den NFC-Chip erneut, um das Produkt nochmals zu prüfen.' });
+
+      // USER ERROR: Session abgelaufen oder nicht gefunden
+      } else if (ec === 'E-TK02' || ec === 'E-TK03') {
+        go(S.WARNING, { title: 'Sitzung abgelaufen', message: 'Der Verifizierungscode ist nicht mehr gültig.', hint: 'Halte dein Smartphone erneut an den NFC-Chip.' });
+
+      // FAKE / COUNTERFEIT: Echte Fehler (Signatur, Encryption, Chip nicht in DB)
+      } else {
+        go(S.ERROR, { title: 'Nicht verifizierbar', message: 'Dieses Produkt konnte nicht als authentisch verifiziert werden.', hint: 'Bei Fragen wende dich bitte an den Kundenservice.' });
+      }
     }
   } catch (e) {
     updateButton('error', '✕ Connection Error');
